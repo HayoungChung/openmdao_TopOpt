@@ -1,5 +1,5 @@
 # Introduction
-This program presents a modularparadigm for topology optimization using OpenMDAO, an open-source computational framework for multidisciplinary design optimization.
+This program presents a modular paradigm for topology optimization using OpenMDAO, an open-source computational framework for multidisciplinary design optimization.
 
 # Installation 
 
@@ -52,7 +52,7 @@ Following operations are assumed to take place in the default path. (*M2DO_PATH*
     cp build/lib*/*.so ./../../../LevelSet* 
     ```
     
-## Running a SIMP optimization
+# Running a SIMP optimization
 
 1. Run main python script
 
@@ -77,7 +77,7 @@ Following operations are assumed to take place in the default path. (*M2DO_PATH*
     python make_plots.py
     ```
 
-## Running a LSTO optimization
+# Running a LSTO optimization
 
 1. Run main python script
 
@@ -101,7 +101,7 @@ Following operations are assumed to take place in the default path. (*M2DO_PATH*
     ```
     python make_plots.py
     ```
-## References
+# References
 
 1. OpenLSTO-lite
 
