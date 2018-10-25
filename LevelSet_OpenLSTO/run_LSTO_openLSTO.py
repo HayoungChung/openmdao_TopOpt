@@ -236,6 +236,16 @@ for i_HJ in range(0, max_loop):
     lsm_solver.advect(Bpt_Vel, timestep)
     lsm_solver.reinitialise()
     
+    if 1: # quick plot
+        plt.figure(1)
+        plt.clf()
+        plt.scatter(bpts_xy[:,0],bpts_xy[:,1], 30)
+        # plt.show()
+        plt.axis("equal")
+        # plt.colorbar()
+        plt.savefig("mdo_bpts_%d.png" % i_HJ)
+    
+
     print ('loop %d is finished' % i_HJ)
     area = areafraction.sum()/(nelx*nely)
     compliance = np.dot(u,GF_)

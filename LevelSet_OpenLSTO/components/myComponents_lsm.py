@@ -6,7 +6,7 @@ from py_lsmBind import py_LSM
 
 class IntegralComp(ExplicitComponent):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=py_LSM, )#required=True)
+        self.options.declare('lsm_solver', types=py_LSM, )#required=True)
 
     def setup(self):
         self.add_input('Sf', shape=num, val = 0.0)

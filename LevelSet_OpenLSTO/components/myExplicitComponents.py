@@ -9,23 +9,23 @@ from lsm_classes import PyLSMSolver
 # '''
 # class ComplSens_Comp(ExplicitComponent):
 #     def initialize(self):
-#         self.metadata.declare('lsm_solver', type_=PyLSMSolver, )#required=True)
-#         self.metadata.declare('bpts_xy', type_=np.ndarray, )#required=True)
-#         self.metadata.declare('fixedGpts_xy', type_=np.ndarray, )#required=True)
-#         self.metadata.declare('radius', type_=(int, float), )#required=True)
-#         self.metadata.declare('area_fraction', type_=np.ndarray, )#required=True)
-#         self.metadata.declare('movelimit', type_=float, )#required=True)
+#         self.options.declare('lsm_solver', types=PyLSMSolver, )#required=True)
+#         self.options.declare('bpts_xy', types=np.ndarray, )#required=True)
+#         self.options.declare('fixedGpts_xy', types=np.ndarray, )#required=True)
+#         self.options.declare('radius', types=(int, float), )#required=True)
+#         self.options.declare('area_fraction', types=np.ndarray, )#required=True)
+#         self.options.declare('movelimit', types=float, )#required=True)
 #         # TOREMOVE
-#         self.metadata.declare('tmpFix_bpts_sens', type_=np.ndarray, )#required=True)
+#         self.options.declare('tmpFix_bpts_sens', types=np.ndarray, )#required=True)
 
 #     def setup(self):
-#         self.lsm_solver = self.metadata['lsm_solver']
-#         self.bpts_xy = self.metadata['bpts_xy']
-#         self.fixedGpts_xy = self.metadata['fixedGpts_xy']
-#         self.radius = self.metadata['radius']
-#         self.area_fraction = self.metadata['area_fraction']
-#         self.movelimit = self.metadata['movelimit']
-#         self.tmpFix_bpts_sens = self.metadata['tmpFix_bpts_sens']
+#         self.lsm_solver = self.options['lsm_solver']
+#         self.bpts_xy = self.options['bpts_xy']
+#         self.fixedGpts_xy = self.options['fixedGpts_xy']
+#         self.radius = self.options['radius']
+#         self.area_fraction = self.options['area_fraction']
+#         self.movelimit = self.options['movelimit']
+#         self.tmpFix_bpts_sens = self.options['tmpFix_bpts_sens']
 
 #         num = fixedGpts_xy.shape[0]
 #         self.add_input('fixedGpts_sens', shape=num, val=0.0)
@@ -48,14 +48,14 @@ from lsm_classes import PyLSMSolver
 
 # class AreaConstComp(ExplicitComponent):
 #     def initialize(self):
-#         self.metadata.declare('lsm_solver', type_=PyLSMSolver, )#required=True)
-#         self.metadata.declare('num_bpts', type_=(int,float), )#required=True)
-#         self.metadata.declare('num_dvs', type_=(int,float), )#required=True)
+#         self.options.declare('lsm_solver', types=PyLSMSolver, )#required=True)
+#         self.options.declare('num_bpts', types=(int,float), )#required=True)
+#         self.options.declare('num_dvs', types=(int,float), )#required=True)
 
 #     def setup(self):
-#         self.lsm_solver = self.metadata['lsm_solver']
-#         self.num_bpts = num_bpts = self.metadata['num_bpts']
-#         num_dvs = self.metadata['num_dvs']
+#         self.lsm_solver = self.options['lsm_solver']
+#         self.num_bpts = num_bpts = self.options['num_bpts']
+#         num_dvs = self.options['num_dvs']
 
 #         self.add_input('lambdas', shape = num_dvs, val = 0.)
 #         self.add_output('bpts_sens', shape = (num_bpts,1))
@@ -72,12 +72,12 @@ from lsm_classes import PyLSMSolver
 
 # class ScaleComp(ExplicitComponent):
 #     def initialize(self):
-#         self.metadata.declare('num_bpts', type_=int, )#required=True)
-#         # self.metadata.declare('num_dvs', type_=int, )#required=True)
+#         self.options.declare('num_bpts', types=int, )#required=True)
+#         # self.options.declare('num_dvs', types=int, )#required=True)
 
 #     def setup(self):
-#         self.num_bpts = num_bpts = self.metadata['num_bpts']
-#         # num_dvs = self.metadata['num_dvs']
+#         self.num_bpts = num_bpts = self.options['num_bpts']
+#         # num_dvs = self.options['num_dvs']
 #         self.add_input('x', shape = num_bpts)
 
 #         self.add_output('y', shape = (num_bpts,)) # num_dvs))
@@ -93,16 +93,16 @@ from lsm_classes import PyLSMSolver
 
 # class DispComp(ExplicitComponent):
 #     def initialize(self):
-#         self.metadata.declare('lsm_solver', type_=PyLSMSolver, )#required=True)
-#         self.metadata.declare('num_bpts', type_=int, )#required=True)
-#         self.metadata.declare('num_dvs', type_=int, )#required=True)
-#         self.metadata.declare('segmentLength', type_=np.ndarray, )#required=True)
+#         self.options.declare('lsm_solver', types=PyLSMSolver, )#required=True)
+#         self.options.declare('num_bpts', types=int, )#required=True)
+#         self.options.declare('num_dvs', types=int, )#required=True)
+#         self.options.declare('segmentLength', types=np.ndarray, )#required=True)
 
 #     def setup(self):
-#         self.lsm_solver = self.metadata['lsm_solver']
-#         self.num_bpts = self.metadata['num_bpts']
-#         self.num_dvs = self.metadata['num_dvs']
-#         self.segmentLength = self.metadata['segmentLength']
+#         self.lsm_solver = self.options['lsm_solver']
+#         self.num_bpts = self.options['num_bpts']
+#         self.num_dvs = self.options['num_dvs']
+#         self.segmentLength = self.options['segmentLength']
 
 #         self.add_input('sens_c', shape = self.num_bpts) #(self.num_bpts, self.num_dvs))
 #         self.add_input('sens_a', shape = self.num_bpts)
@@ -138,14 +138,14 @@ from lsm_classes import PyLSMSolver
 
 class DisplacementComp(ExplicitComponent):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=PyLSMSolver, )#required=True)
-        self.metadata.declare('num_bpts', type_=int, )#required=True)
-        self.metadata.declare('num_dvs', type_=int, )#required=True)
+        self.options.declare('lsm_solver', types=PyLSMSolver, )#required=True)
+        self.options.declare('num_bpts', types=int, )#required=True)
+        self.options.declare('num_dvs', types=int, )#required=True)
 
     def setup(self):
-        self.lsm_solver = self.metadata['lsm_solver']
-        num_bpts = self.metadata['num_bpts']
-        num_dvs = self.metadata['num_dvs']
+        self.lsm_solver = self.options['lsm_solver']
+        num_bpts = self.options['num_bpts']
+        num_dvs = self.options['num_dvs']
         self.add_input('lambdas', shape=2)
         self.add_output('displacements', shape=num_bpts)
         #self.approx_partials('displacements','lambdas',method='fd',form='central',step=1e-4)
@@ -179,12 +179,12 @@ class DisplacementComp(ExplicitComponent):
 
 class ConstraintComp(ExplicitComponent):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=PyLSMSolver, )#required=True)
-        self.metadata.declare('num_bpts', type_=int, )#required=True)
+        self.options.declare('lsm_solver', types=PyLSMSolver, )#required=True)
+        self.options.declare('num_bpts', types=int, )#required=True)
 
     def setup(self):
-        self.lsm_solver = self.metadata['lsm_solver']
-        num_bpts = self.metadata['num_bpts']
+        self.lsm_solver = self.options['lsm_solver']
+        num_bpts = self.options['num_bpts']
 
         self.add_input('displacements', shape=num_bpts)
         self.add_output('constraint')
@@ -206,12 +206,12 @@ class ConstraintComp(ExplicitComponent):
 
 class ObjectiveComp(ExplicitComponent):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=PyLSMSolver, )#required=True)
-        self.metadata.declare('num_bpts', type_=int, )#required=True)
+        self.options.declare('lsm_solver', types=PyLSMSolver, )#required=True)
+        self.options.declare('num_bpts', types=int, )#required=True)
 
     def setup(self):
-        self.lsm_solver = self.metadata['lsm_solver']
-        num_bpts = self.metadata['num_bpts']
+        self.lsm_solver = self.options['lsm_solver']
+        num_bpts = self.options['num_bpts']
 
         self.add_input('displacements', shape=num_bpts)
         self.add_output('objective')
@@ -233,10 +233,10 @@ class ObjectiveComp(ExplicitComponent):
 
 class Callback_objF(ExplicitComponent):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=PyLSMSolver, )#required=True)
+        self.options.declare('lsm_solver', types=PyLSMSolver, )#required=True)
 
     def setup(self):
-        self.lsm_solver = self.metadata['lsm_solver']
+        self.lsm_solver = self.options['lsm_solver']
         self.add_input('lambdas', shape=2)
         self.add_output('objective')
 
@@ -250,10 +250,10 @@ class Callback_objF(ExplicitComponent):
 
 class Callback_conF(ExplicitComponent):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=PyLSMSolver, )#required=True)
+        self.options.declare('lsm_solver', types=PyLSMSolver, )#required=True)
 
     def setup(self):
-        self.lsm_solver = self.metadata['lsm_solver']
+        self.lsm_solver = self.options['lsm_solver']
         self.add_input('lambdas', shape=2)
         self.add_output('constraint')
         self.approx_partials('constraint', 'lambdas')

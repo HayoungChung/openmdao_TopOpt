@@ -189,7 +189,7 @@ cdef class py_LSM:
                     if sens > 0: 
                         minDisp = self.boundaryptr.points[ii].negativeLimit / sens / self.scale_factors[dd]
                         maxDisp = self.boundaryptr.points[ii].positiveLimit / sens / self.scale_factors[dd]
-                    else:
+                    elif sens < 0:
                         maxDisp = self.boundaryptr.points[ii].negativeLimit / sens / self.scale_factors[dd]
                         minDisp = self.boundaryptr.points[ii].positiveLimit / sens / self.scale_factors[dd]
 

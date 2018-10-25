@@ -6,16 +6,16 @@ from lsm_classes import PyLSMSolver
 
 class LSM2D_slpGroup(Group):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=PyLSMSolver, )#required=True)
-        self.metadata.declare('bpts_xy', type_=np.ndarray, )#required=True)
-        self.metadata.declare('ub', type_=(list,np.ndarray), )#required=True)
-        self.metadata.declare('lb', type_=(list,np.ndarray), )#required=True)
+        self.options.declare('lsm_solver', types=PyLSMSolver, )#required=True)
+        self.options.declare('bpts_xy', types=np.ndarray, )#required=True)
+        self.options.declare('ub', types=(list,np.ndarray), )#required=True)
+        self.options.declare('lb', types=(list,np.ndarray), )#required=True)
 
     def setup(self):
-        lsm_solver = self.metadata['lsm_solver']
-        bpts_xy = self.metadata['bpts_xy']
-        upperbound = self.metadata['ub']
-        lowerbound = self.metadata['lb']
+        lsm_solver = self.options['lsm_solver']
+        bpts_xy = self.options['bpts_xy']
+        upperbound = self.options['ub']
+        lowerbound = self.options['lb']
 
         num_dvs = 2 # number of lambdas
         num_bpts = bpts_xy.shape[0]

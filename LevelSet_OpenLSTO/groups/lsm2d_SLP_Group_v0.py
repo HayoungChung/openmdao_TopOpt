@@ -7,30 +7,30 @@ from lsm_classes import PyLSMSolver
 
 class LSM2D_slpGroup(Group):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=PyLSMSolver, required=True)
-        self.metadata.declare('bpts_xy', type_=np.ndarray, required=True)
-        self.metadata.declare('segmentLength', type_=np.ndarray, required=True)
-        # self.metadata.declare('area_fraction', type_=np.ndarray, required=True)
-        # self.metadata.declare('fixedGpts_xy', type_=np.ndarray, required=True)
-        # self.metadata.declare('fixedGpts_sens', type_=np.ndarray, required=True)
-        self.metadata.declare('radius', type_=(int, float), required=True)
-        # self.metadata.declare('movelimit', type_=float, required=True)
-        self.metadata.declare('bpts_sens', type_=np.ndarray, required=True)
-        self.metadata.declare('ub', type_=(list,np.ndarray), required=True)
-        self.metadata.declare('lb', type_=(list,np.ndarray), required=True)
+        self.options.declare('lsm_solver', types=PyLSMSolver, required=True)
+        self.options.declare('bpts_xy', types=np.ndarray, required=True)
+        self.options.declare('segmentLength', types=np.ndarray, required=True)
+        # self.options.declare('area_fraction', types=np.ndarray, required=True)
+        # self.options.declare('fixedGpts_xy', types=np.ndarray, required=True)
+        # self.options.declare('fixedGpts_sens', types=np.ndarray, required=True)
+        self.options.declare('radius', types=(int, float), required=True)
+        # self.options.declare('movelimit', types=float, required=True)
+        self.options.declare('bpts_sens', types=np.ndarray, required=True)
+        self.options.declare('ub', types=(list,np.ndarray), required=True)
+        self.options.declare('lb', types=(list,np.ndarray), required=True)
 
     def setup(self):
-        lsm_solver = self.metadata['lsm_solver']
-        bpts_xy = self.metadata['bpts_xy']
-        segmentLength = self.metadata['segmentLength']
-        # area_fraction = self.metadata['area_fraction']
-        # fixedGpts_xy = self.metadata['fixedGpts_xy']
-        # fixedGpts_sens = self.metadata['fixedGpts_sens']
-        radius = self.metadata['radius']
-        # movelimit = self.metadata['movelimit']
-        bpts_sens = self.metadata['bpts_sens']
-        upperbound = self.metadata['ub']
-        lowerbound = self.metadata['lb']
+        lsm_solver = self.options['lsm_solver']
+        bpts_xy = self.options['bpts_xy']
+        segmentLength = self.options['segmentLength']
+        # area_fraction = self.options['area_fraction']
+        # fixedGpts_xy = self.options['fixedGpts_xy']
+        # fixedGpts_sens = self.options['fixedGpts_sens']
+        radius = self.options['radius']
+        # movelimit = self.options['movelimit']
+        bpts_sens = self.options['bpts_sens']
+        upperbound = self.options['ub']
+        lowerbound = self.options['lb']
 
 
         num_dvs = 2 # number of lambdas

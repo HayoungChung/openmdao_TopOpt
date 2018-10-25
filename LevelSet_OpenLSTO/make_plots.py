@@ -23,7 +23,7 @@ num_nodes_x = mesh.shape[0]
 num_nodes_y = mesh.shape[1]
 # raw['quad_order'] = quad_order
 # raw['mesh'] = self.mesh
-# raw['gpt_mesh'] = self.metadata['gpt_mesh']
+# raw['gpt_mesh'] = self.options['gpt_mesh']
 print(length_x, length_y, num_nodes_x, num_nodes_y)
 
 counter = 0

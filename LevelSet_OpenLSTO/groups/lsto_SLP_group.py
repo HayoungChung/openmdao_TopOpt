@@ -8,22 +8,22 @@ from py_lsmBind import py_LSM
 
 class LSM2D_slpGroup(Group):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=py_LSM, required=True)
-        self.metadata.declare('bpts_xy', type_=np.ndarray, required=True)
-        self.metadata.declare('bpts_sens', type_=np.ndarray, required=True)
-        self.metadata.declare('ActiveList', type_=np.ndarray, required=True)
-        self.metadata.declare('length_segs', type_=np.ndarray, required=True)
-        self.metadata.declare('ub', type_=(list,np.ndarray), required=True)
-        self.metadata.declare('lb', type_=(list,np.ndarray), required=True)
+        self.options.declare('lsm_solver', types=py_LSM, required=True)
+        self.options.declare('bpts_xy', types=np.ndarray, required=True)
+        self.options.declare('bpts_sens', types=np.ndarray, required=True)
+        self.options.declare('ActiveList', types=np.ndarray, required=True)
+        self.options.declare('length_segs', types=np.ndarray, required=True)
+        self.options.declare('ub', types=(list,np.ndarray), required=True)
+        self.options.declare('lb', types=(list,np.ndarray), required=True)
 
     def setup(self):
-        lsm_solver = self.metadata['lsm_solver']
-        bpts_xy = self.metadata['bpts_xy']
-        bpts_sens = self.metadata['bpts_sens']
-        activeList = self.metadata['ActiveList']
-        length_segs = self.metadata['length_segs']
-        upperbound = self.metadata['ub']
-        lowerbound = self.metadata['lb']
+        lsm_solver = self.options['lsm_solver']
+        bpts_xy = self.options['bpts_xy']
+        bpts_sens = self.options['bpts_sens']
+        activeList = self.options['ActiveList']
+        length_segs = self.options['length_segs']
+        upperbound = self.options['ub']
+        lowerbound = self.options['lb']
 
         num_dvs = 2 # number of lambdas
         num_bpts = bpts_xy.shape[0]

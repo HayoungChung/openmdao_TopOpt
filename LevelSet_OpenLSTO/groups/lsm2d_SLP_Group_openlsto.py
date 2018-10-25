@@ -10,25 +10,25 @@ from components_new.ScalingComp import *
 
 class LSM2D_slpGroup(Group):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=py_LSM, )#required=True)
-        self.metadata.declare('num_bpts', type_=(int,float), )#required=True)
-        self.metadata.declare('ub', type_=(list,np.ndarray), )#required=True)
-        self.metadata.declare('lb', type_=(list,np.ndarray), )#required=True)
+        self.options.declare('lsm_solver', types=py_LSM, )#required=True)
+        self.options.declare('num_bpts', types=(int,float), )#required=True)
+        self.options.declare('ub', types=(list,np.ndarray), )#required=True)
+        self.options.declare('lb', types=(list,np.ndarray), )#required=True)
 
-        self.metadata.declare('Sf', type_=np.ndarray, )#required=True)
-        self.metadata.declare('Sg', type_=np.ndarray, )#required=True)
-        self.metadata.declare('constraintDistance', type_=float, )#required=True)
+        self.options.declare('Sf', types=np.ndarray, )#required=True)
+        self.options.declare('Sg', types=np.ndarray, )#required=True)
+        self.options.declare('constraintDistance', types=float, )#required=True)
 
 
     def setup(self):
-        lsm_solver = self.metadata['lsm_solver']
-        num_bpts = self.metadata['num_bpts']
-        upperbound = self.metadata['ub']
-        lowerbound = self.metadata['lb']
+        lsm_solver = self.options['lsm_solver']
+        num_bpts = self.options['num_bpts']
+        upperbound = self.options['ub']
+        lowerbound = self.options['lb']
 
-        Sf = self.metadata['Sf']
-        Sg = self.metadata['Sg']
-        constraintDistance = self.metadata['constraintDistance']
+        Sf = self.options['Sf']
+        Sg = self.options['Sg']
+        constraintDistance = self.options['constraintDistance']
 
         num_dvs = 2 # number of lambdas
         

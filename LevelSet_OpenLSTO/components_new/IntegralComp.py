@@ -4,12 +4,12 @@ from py_lsmBind import py_LSM
 
 class IntegralComp(ExplicitComponent):
     def initialize(self):
-        self.metadata.declare('lsm_solver', type_=py_LSM, )#required=True)
-        self.metadata.declare('nBpts', type_=(int,float), )#required=True)
+        self.options.declare('lsm_solver', types=py_LSM, )#required=True)
+        self.options.declare('nBpts', types=(int,float), )#required=True)
 
     def setup(self):
-        self.nBpts = self.metadata['nBpts']
-        self.lsm_solver = self.metadata['lsm_solver']
+        self.nBpts = self.options['nBpts']
+        self.lsm_solver = self.options['lsm_solver']
 
         self.segLength = self.lsm_solver.get_length()
 
