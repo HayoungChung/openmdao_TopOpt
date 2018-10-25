@@ -1,3 +1,6 @@
+# Introduction
+This program presents a modularparadigm for topology optimization using OpenMDAO, an open-source computational framework for multidisciplinary design optimization.
+
 # Installation 
 
 ## Prerequisite
@@ -98,3 +101,18 @@ Following operations are assumed to take place in the default path. (*M2DO_PATH*
     ```
     python make_plots.py
     ```
+## References
+
+1. OpenLSTO-lite
+
+    Original FEA and LSM routines are derived from [OpenLSTO](https://github.com/M2DOLab/OpenLSTO-lite), which is am open-source level-set topology optimization program developed and maintained by researchers of [M2DO group](http://m2do.ucsd.edu/) led by Prof. Alicia Kim.
+
+    Comprehensive documentation is found in the [webpage](http://m2do.ucsd.edu/software/)
+
+2. OpenMDAO
+
+    The Present program is based on [OpenMDAO](http://openmdao.org/), an open-source high-performance computing platform for systems analysis and multidisciplinary optimization, written in Python. 
+
+3. SLSM library
+
+    Implementation details of the level-set method used herein can be found in [SLSM library](https://github.com/lohedges/slsm) developed my Dr. Lester Hedges. 
