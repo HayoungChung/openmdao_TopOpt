@@ -16,6 +16,7 @@ cdef extern from "../include/solid_element.h" namespace "M2DO_FEA":
         double area_fraction
         MatrixXd K()
         vector[MatrixXd] K_gpts
+        vector[double] centroid
 
 cdef extern from "../include/solid_material.h" namespace "M2DO_FEA":
      cdef cppclass SolidMaterial:

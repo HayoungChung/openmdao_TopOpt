@@ -27,6 +27,16 @@ cdef class py_Sensitivity:
         self.fea.studyptr.u = u
         self.sens = new SensitivityAnalysis(fea.studyptr[0])
         
+        for ii in range(self.fea.nELEM):
+            for gg in range(self.fea.element_order**2):
+                self.sens.sensitivities[ii].coordinate[gg][0] *= self.fea.scale_x
+                self.sens.sensitivities[ii].coordinate[gg][1] *= self.fea.scale_y
+
+        for ii in range(self.fea.nELEM):
+            fea.meshptr.solid_elements[ii].centroid[0] *= self.fea.scale_x
+            fea.meshptr.solid_elements[ii].centroid[1] *= self.fea.scale_y
+
+        
     def compute_compliance_sens(self):
         self.sens.ComputeComplianceSensitivities(False)
         nGpts = self.fea.nELEM * self.fea.element_order**2
@@ -71,6 +81,8 @@ cdef class py_FEA:
     cdef int nNODE
     cdef int nDOF
     cdef int element_order
+    cdef double scale_x
+    cdef double scale_y
 
     cdef vector[int] HomoBC
     # K_gpts[0].data = 
@@ -80,6 +92,9 @@ cdef class py_FEA:
         self.meshptr = new Mesh(2)        
         self.studyptr = new StationaryStudy(self.meshptr[0])
         self.element_order = element_order
+        
+        self.scale_x = nelx/lx
+        self.scale_y = nely/ly
 
         exy = np.array([nelx, nely])
         lxy = np.array([lx, ly])
