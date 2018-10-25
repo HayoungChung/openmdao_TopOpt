@@ -176,6 +176,20 @@ for i_HJ in range(0, max_loop):
     py_GptSens = pySens.compute_compliance_sens() # Sensitivities at Gauss points
     py_bptSens = pySens.compute_boundary_sens(bpts_xy) # Sensitivites at Boundary points (using least square)
 
+    # if 0: 
+    #     placeholder = np.zeros([num_gpts,3])
+    #     for i in range(0, num_gpts):
+    #         placeholder[i,0] = py_GptSens[i][0]
+    #         placeholder[i,1] = py_GptSens[i][1]
+    #         placeholder[i,2] = py_GptSens[i][2]
+    #     from pylab import *
+    #     figure(3)
+    #     clf()
+    #     scatter(placeholder[:,0],placeholder[:,1],c= placeholder[:,2])
+    #     axis("equal")
+    #     # plt.colorbar()
+    #     savefig("mdo_gptSens_%d.png" % i_HJ)
+
     lambdas = np.zeros(2)
     
     bpts_sens_new = np.zeros((num_bpts,2))
@@ -240,9 +254,7 @@ for i_HJ in range(0, max_loop):
         plt.figure(1)
         plt.clf()
         plt.scatter(bpts_xy[:,0],bpts_xy[:,1], 30)
-        # plt.show()
         plt.axis("equal")
-        # plt.colorbar()
         plt.savefig("mdo_bpts_%d.png" % i_HJ)
     
 
