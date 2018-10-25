@@ -7,9 +7,7 @@ OpenMDAO ver. 2.2
 
 ## Make shared library for FE analysis from OpenLSTO
 
-Following operations are assumed to take place in the default path. 
-
-(*M2DO_PATH = ./test_OpenMDAO_LSTO*)
+Following operations are assumed to take place in the default path. (*M2DO_PATH*)
 
 1. Move to M2DO_FEA/Python, where Cython wrapper (pyBind.pyx) is located at
 
