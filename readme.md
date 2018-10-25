@@ -46,3 +46,8 @@ nelx = 40 # number of elements in x-direction
 nely = 20 # number of elements in y-direction
 ```
 
+5. Visualize the results
+
+```
+python make_plots.py
+```

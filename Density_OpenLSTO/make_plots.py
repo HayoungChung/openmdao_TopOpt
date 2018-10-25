@@ -65,4 +65,4 @@ while os.path.isfile(filename):
     counter += 1
     filename = 'save/data%03i.pkl' % counter
 
-import movie
+# import movie
