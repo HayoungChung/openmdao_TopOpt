@@ -32,14 +32,14 @@ Following operations are assumed to take place in the default path. (*M2DO_PATH*
 
 Following operations are assumed to take place in the default path. (*M2DO_PATH*)
 
-1. Move to M2DO_LSM/Python, where Cython wrapper (pyBind.pyx) is located at
+1. Move to M2DO_LSM/Python, where Cython wrapper (py_lsmBind.pyx) is located at
 
     ```
     (at M2DO_PATH)
     cd ./OpenLSTO-master/M2DO_LSM/Python/
     ```
 
-3. Compile and copy *.so file to OpenMDAO-SIMP path
+2. Compile and copy *.so file to OpenMDAO-SIMP path
     ```
     sh makefile.sh 
     ```
@@ -49,27 +49,52 @@ Following operations are assumed to take place in the default path. (*M2DO_PATH*
     cp build/lib*/*.so ./../../../LevelSet* 
     ```
     
-## 
+## Running a SIMP optimization
 
-3. Run main python script
+1. Run main python script
 
-```
-(at M2DO_PATH)
-cd Density_OpenLSTO/
-python run_openmdao.py
-```
+    ```
+    (at M2DO_PATH)
+    cd Density_OpenLSTO/
+    python run_openmdao.py
+    ```
 
-4. (Optional) Change mesh density
+4. (Optional) Changing a mesh density
 
-In run_openmdao.py, change 
+    In run_openmdao.py, change 
 
-```
-nelx = 40 # number of elements in x-direction
-nely = 20 # number of elements in y-direction
-```
+    ```
+    nelx = 40 # number of elements in x-direction
+    nely = 20 # number of elements in y-direction
+    ```
 
 5. Visualize the results
 
-```
-python make_plots.py
-```
+    ```
+    python make_plots.py
+    ```
+
+## Running a LSTO optimization
+
+1. Run main python script
+
+    ```
+    (at M2DO_PATH)
+    cd LevelSet_OpenLSTO/
+    python run_LSTO_openLSTO.py
+    ```
+
+4. (Optional) Changing a mesh density
+
+    In run_LSTO_openLSTO.py, change 
+
+    ```
+    nelx = 40 # number of elements in x-direction
+    nely = 20 # number of elements in y-direction
+    ```
+
+5. Visualize the results
+
+    ```
+    python make_plots.py
+    ```
