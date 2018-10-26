@@ -6,7 +6,7 @@ This program presents a modular paradigm for topology optimization using OpenMDA
 ## Prerequisite
 
 * gcc version >= 4.7 
-* OpenMDAO ver. 2.2
+* OpenMDAO ver. >= 2.2
 > Originally the program is developed based on OpenMDAO ver. 2.0, so you'll see some *DeprecationWarning* messages.
 
 ## Compiling FEA shared library (*.so) from OpenLSTO for FE analysis 
