@@ -8,7 +8,8 @@ import sys
 from openmdao.api import Problem, view_model, ScipyOptimizer  # , pyOptSparseDriver
 
 from pyBind import py_FEA, py_Sensitivity
-from groups.simp_w_filter_group import SimpGroup
+# from groups.simp_w_filter_group import SimpGroup
+from groups.simp_group import SimpGroup
 from groups.param_group import FEM2DParamGroup as ParamGroup
 from utils.plot import get_mesh, plot_solution, plot_contour
 # from fem2d.utils.forces import get_forces
@@ -46,7 +47,7 @@ nDOF_withLag  = nDOF + len(BCid)
 
 
 coord = np.array([length_x,length_y/2])
-tol = np.array([1,1]) 
+tol = np.array([1e-3, 1e-3]) 
 GF_ = fem_solver.set_force(coord = coord,tol = tol, direction = 1, f = -1.0)
 GF = np.zeros(nDOF_withLag)
 GF[:nDOF] = GF_
@@ -92,10 +93,15 @@ prob.driver.options['disp'] = True
 prob.setup()
 # view_model(prob)
 
-if 1:
-    prob.run_driver()
-else:
-    prob.check_partials(compact_print=True)
-    prob.run_model()
+# if 1:
+#     prob.run_driver()
+# else:
+#     prob.check_partials(compact_print=True)
+#     prob.run_model()
+
+prob.run_model()
+totals = prob.compute_totals()
+print(totals['objective_comp.objective', 'inputs_comp.dvs'][0][0])
+
 
 # import make_plots

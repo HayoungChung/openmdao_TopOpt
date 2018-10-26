@@ -55,16 +55,16 @@ class SimpGroup(Group):
         comp.add_design_var('dvs', lower=0.01, upper=1.0)
         # comp.add_design_var('x', lower=-4, upper=4) // param
         self.add_subsystem('inputs_comp', comp)
-        self.connect('inputs_comp.dvs', 'filter_comp.dvs')
+        self.connect('inputs_comp.dvs', 'penalization_comp.x')
+        self.connect('inputs_comp.dvs', 'weight_comp.x')
         self.connect('inputs_comp.rhs', 'states_comp.rhs')
 
-        # density filter
-        comp = DensityFilterComp(length_x=length_x, length_y=length_y, 
-                                num_nodes_x=num_nodes_x, num_nodes_y=num_nodes_y,
-                                 num_dvs=nELEM, radius=length_x / (float(num_nodes_x) - 1) * 2)
-        self.add_subsystem('filter_comp', comp)
-        self.connect('filter_comp.dvs_bar', 'penalization_comp.x')
-        self.connect('filter_comp.dvs_bar', 'weight_comp.x')
+        # # density filter
+        # comp = DensityFilterComp(length_x=length_x, length_y=length_y, 
+        #                         num_nodes_x=num_nodes_x, num_nodes_y=num_nodes_y,
+        #                          num_dvs=nELEM, radius=length_x / (float(num_nodes_x) - 1) * 2)
+        # self.add_subsystem('filter_comp', comp)
+        # self.connect('filter_comp.dvs_bar', 'penalization_comp.x')
 
         # penalization
         comp = PenalizationComp(num=nELEM, p=p)

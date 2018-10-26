@@ -28,11 +28,11 @@ except:
 
 
 # FEM Mesh
-nelx = 80 
+nelx = 80
 nely = 40
 
-length_x = 160
-length_y = 80
+length_x = 160.
+length_y = 80.
 
 ls2fe_x = length_x/nelx
 ls2fe_y = length_y/nely

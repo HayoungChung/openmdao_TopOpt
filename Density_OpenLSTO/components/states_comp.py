@@ -147,7 +147,7 @@ class StatesComp(ImplicitComponent):
         if mode == 'fwd':
             sol[:] = scipy.sparse.linalg.spsolve(self.mtx, rhs)
         if mode == 'rev':
-            sol[:] 
+            sol[:] = scipy.sparse.linalg.spsolve(self.mtx, rhs)
         
     #     # sol[:] = self.ilu.solve(rhs, arg)
 
