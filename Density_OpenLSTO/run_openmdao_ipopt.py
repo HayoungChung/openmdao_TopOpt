@@ -5,7 +5,7 @@ import sys
 # sys.path.insert(0, r'/home/hac210/Dropbox/packages/02.M2DO_opensource_new/OpenLSTO/M2DO_FEA/Python/')
 # sys.path.insert(0, r'/home/hac210/00.Working/test_OpenMDAO_LSTO/OpenLSTO-master/M2DO_FEA/Python/')
 
-from openmdao.api import Problem, view_model, ScipyOptimizer  pyOptSparseDriver
+from openmdao.api import Problem, view_model, ScipyOptimizer, pyOptSparseDriver
 
 from pyBind import py_FEA, py_Sensitivity
 # from groups.simp_w_filter_group import SimpGroup
@@ -52,7 +52,7 @@ GF_ = fem_solver.set_force(coord = coord,tol = tol, direction = 1, f = -1.0)
 GF = np.zeros(nDOF_withLag)
 GF[:nDOF] = GF_
 
-# Quickcheck for FEA
+# Quickcheck for FEAScipyOptimizer
 if 0:
     (rows, cols, vals) = fem_solver.compute_K()
     u = fem_solver.solve_FE()
@@ -84,11 +84,21 @@ else:
 # optimizer setup
 prob = Problem(model)
 
-prob.driver = ScipyOptimizer()
+
+# IPOPT ===========
+prob.driver = pyOptSparseDriver()
 prob.driver.options['optimizer'] = 'SLSQP'
 # prob.driver.options['tol'] = 1e-5 
 #prob.driver.options['maxiter'] = 
-prob.driver.options['disp'] = True
+# prob.driver.options['disp'] = True
+
+
+# SCIPYOPT ============
+# prob.driver = ScipyOptimizer()
+# prob.driver.options['optimizer'] = 'SLSQP'
+# # prob.driver.options['tol'] = 1e-5 
+# #prob.driver.options['maxiter'] = 
+# prob.driver.options['disp'] = True
 
 prob.setup()
 # view_model(prob)
