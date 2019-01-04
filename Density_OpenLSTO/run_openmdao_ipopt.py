@@ -8,15 +8,15 @@ import sys
 from openmdao.api import Problem, view_model, ScipyOptimizer, pyOptSparseDriver
 
 from pyBind import py_FEA, py_Sensitivity
-# from groups.simp_w_filter_group import SimpGroup
-from groups.simp_group import SimpGroup
+from groups.simp_w_filter_group import SimpGroup
+# from groups.simp_group import SimpGroup
 from groups.param_group import FEM2DParamGroup as ParamGroup
 from utils.plot import get_mesh, plot_solution, plot_contour
 # from fem2d.utils.forces import get_forces
 
 # Meshing =============================
-nelx = 80
-nely = 40
+nelx = 160
+nely = 80
 
 length_x = 160
 length_y = 80
@@ -87,11 +87,9 @@ prob = Problem(model)
 
 # IPOPT ===========
 prob.driver = pyOptSparseDriver()
-prob.driver.options['optimizer'] = 'SLSQP'
-# prob.driver.options['tol'] = 1e-5 
-#prob.driver.options['maxiter'] = 
-# prob.driver.options['disp'] = True
-
+prob.driver.options['optimizer'] = 'IPOPT'
+prob.driver.opt_settings['linear_solver'] = 'ma27'
+# prob.driver.options['optimizer'] = 'SLSQP'
 
 # SCIPYOPT ============
 # prob.driver = ScipyOptimizer()

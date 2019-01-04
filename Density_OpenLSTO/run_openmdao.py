@@ -93,15 +93,15 @@ prob.driver.options['disp'] = True
 prob.setup()
 # view_model(prob)
 
-# if 1:
-#     prob.run_driver()
-# else:
-#     prob.check_partials(compact_print=True)
-#     prob.run_model()
+if 1:
+    prob.run_driver()
+else:
+    prob.check_partials(compact_print=True)
+    prob.run_model()
 
-prob.run_model()
-totals = prob.compute_totals()
-print(totals['objective_comp.objective', 'inputs_comp.dvs'][0][0])
+# prob.run_model()
+# totals = prob.compute_totals()
+# print(totals['objective_comp.objective', 'inputs_comp.dvs'][0][0])
 
 
 # import make_plots
