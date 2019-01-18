@@ -1,5 +1,5 @@
 # this is a up-to-date runing script (update on plotings and savings)
-# OCT 18
+# try perturbation the boundary
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
@@ -147,8 +147,6 @@ elif ((nelx == 80) and (nely == 40)): # 160 x 80 case
 
 lsm_solver.set_levelset()
 
-
-
 # HJ loop
 max_loop = 700
 for i_HJ in range(0, max_loop):
@@ -174,6 +172,19 @@ for i_HJ in range(0, max_loop):
 
     pySens = py_Sensitivity(fem_solver, u)
     py_GptSens = pySens.compute_compliance_sens() # Sensitivities at Gauss points
+
+    #TODO: UP TO HERE, NOTHING NEEDS TO BE CHANGED # 18JAN2019
+    
+    for ii in range(0, num_bpts): # WIP:
+        px_ = bpts_xy[ii,0], py_ = bpts_xy[ii,1]
+        lsm_pert = py_LSM(nelx = 5, nely = 5, movelimit = 0.5)
+        lsm_pert.add_holes(locx = [], locy = [], radius = [])
+        lsm_pert.set_levelset()
+
+        
+
+
+
     py_bptSens = pySens.compute_boundary_sens(bpts_xy) # Sensitivites at Boundary points (using least square)
 
     # if 0: 
