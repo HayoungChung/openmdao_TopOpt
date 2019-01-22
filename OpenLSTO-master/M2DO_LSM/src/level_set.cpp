@@ -298,6 +298,46 @@ bool LevelSet::update(double timeStep)
     return false;
 }
 
+bool LevelSet::update_no_WENO(double timeStep)
+{
+    // Loop over all nodes in the narrow band.
+    for (unsigned int i=0;i<nNarrowBand;i++)
+    {
+        unsigned int node = narrowBand[i];
+        signedDistance[node] -= timeStep * velocity[node];
+
+        // If node is on domain boundary.
+        if (mesh.nodes[node].isDomain)
+        {
+            // Enforce boundary condition (don't).
+            if (signedDistance[node] > 0)
+            {
+              //signedDistance[node] = 0;
+            }
+
+        }
+
+        // Reset the number of boundary points.
+        mesh.nodes[node].nBoundaryPoints = 0;
+    }
+
+    // Check mine nodes.
+    for (unsigned int i=0;i<nMines;i++)
+    {
+        // Boundary is within one grid spacing of the mine.
+        if (std::abs(signedDistance[mines[i]]) < 1.0)
+        {
+            // Reinitialise the signed distance function.
+            reinitialise();
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 void LevelSet::killNodes(const std::vector<Coord>& points)
 {
     // Kill nodes in a rectangular region.

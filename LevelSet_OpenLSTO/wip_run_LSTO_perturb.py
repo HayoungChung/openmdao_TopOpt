@@ -27,9 +27,13 @@ except:
     import pickle
 
 
+# perturb?
+isPerturb = True
+pertb = 0.2
+
 # FEM Mesh
-nelx = 80
-nely = 40
+nelx = 160
+nely = 80
 
 length_x = 160.
 length_y = 80.
@@ -111,6 +115,8 @@ if ((nelx == 160) and (nely == 80)): # 160 x 80 case
                     [80, 66, 5],
                     [112, 66, 5],
                     [144, 66, 5]],dtype=np.float)
+    if (isPerturb):
+        hole = np.append(hole,[[0., 0., 0.1], [0., 80., 0.1], [160., 0., 0.1], [160., 80., 0.1]], axis = 0)
     lsm_solver.add_holes(locx = list(hole[:,0]), locy = list(hole[:,1]), radius = list(hole[:,2]))
 
 elif ((nelx == 80) and (nely == 40)): # 160 x 80 case
@@ -174,18 +180,161 @@ for i_HJ in range(0, max_loop):
     py_GptSens = pySens.compute_compliance_sens() # Sensitivities at Gauss points
 
     #TODO: UP TO HERE, NOTHING NEEDS TO BE CHANGED # 18JAN2019
+    # FIXME: error is huge (del_area = 3.5 which is highly overestimated...)
+    # TODO: 1. check the mesh indices (ordering)
+    # TODO: 
     
-    for ii in range(0, num_bpts): # WIP:
-        px_ = bpts_xy[ii,0], py_ = bpts_xy[ii,1]
-        lsm_pert = py_LSM(nelx = 5, nely = 5, movelimit = 0.5)
+    perturb_points_sensitivities = [None] * num_bpts
+    perturb_points_indices = [None] * num_bpts
+    perturb_boundary_sensitivities = np.zeros((num_bpts,2))
+
+    for bbb in range(0, num_bpts): # WIP:
+        px_ = bpts_xy[bbb,0]
+        py_ = bpts_xy[bbb,1]
+
+        nelx_pert_0 = int(max(int(np.floor(px_)) - 1 - 3, 0))
+        nelx_pert_1 = int(min(int(np.floor(px_ - 1e-4)) + 2 + 3, int(nelx))) 
+        
+        nely_pert_0 = int(max(int(np.floor(py_)) - 1 - 3, 0))
+        nely_pert_1 = int(min(int(np.floor(py_ - 1e-4)) + 2 + 3, int(nely)))
+
+        # dimensions of perturbed mesh
+        nelx_pert = nelx_pert_1 - nelx_pert_0
+        nely_pert = nely_pert_1 - nely_pert_0
+
+        # level-set perturbation mesh
+        lsm_pert = py_LSM(nelx = nelx_pert, nely = nely_pert, moveLimit = 0.5)
         lsm_pert.add_holes(locx = [], locy = [], radius = [])
         lsm_pert.set_levelset()
 
+        # assign appropriate signed distance values to the perturbed mesh
+        phi_org = lsm_solver.get_phi()
+
+        count_pert = 0
+        for iy in range(0, nely_pert+1):
+            for ix in range(0, nelx_pert+1):
+                global_x = nelx_pert_0 + ix
+                global_y = nely_pert_0 + iy
+
+                lsm_pert.set_phi(index = count_pert, value = phi_org[(nelx + 1)*global_y + global_x], isReplace = True)
+                count_pert += 1 
         
+        lsm_pert.reinitialise()
+
+        (bpts_xy_pert0, areafraction_pert0, seglength_pert0) = lsm_pert.discretise()
+
+        timestep_pert = 1.0 # deltaT for perturbation
+
+        # assign perturbation velocity at the boundary point
+        bpt_length = 0.0 
+        vel_bpts = np.zeros(bpts_xy_pert0.shape[0])
+
+        # lsm_solver.Print_results(0)
+        # lsm_pert.Print_results(1)
+
+        for ii in range(0, bpts_xy_pert0.shape[0]):
+            tmp_px_ = bpts_xy_pert0[ii,0]
+            tmp_py_ = bpts_xy_pert0[ii,1]
+            dist_pert = pow(-tmp_px_ + px_ - nelx_pert_0, 2) + pow(-tmp_py_ + py_ - nely_pert_0, 2)
+            dist_pert = dist_pert**0.5
+            if (dist_pert < pertb):
+                vel_bpts[ii] = pertb * (1.0 - pow(dist_pert/pertb, 2.0))
+            else:
+                vel_bpts[ii] = 0.0
+            # print(tmp_px_, tmp_py_, vel_bpts[ii])
+        
+        lsm_pert.advect_woWENO(vel_bpts, timestep_pert)
+
+        # discretize again to get perturbed data
+        (bpts_xy_pert1, areafraction_pert1, seglength_pert1) = lsm_pert.discretise()
+        # lsm_pert.Print_results(2)
+
+        # loop through the elements in the narrow band
+        perturb_sensitivities = []
+        perturb_indices = []
+        count_pert = 0
+        for iy in range(0, nely_pert):
+            for ix in range(0, nelx_pert):
+                global_x = nelx_pert_0 + ix
+                global_y = nely_pert_0 + iy
+                global_index = (nelx)*global_y + global_x
+
+                delta_x = min(areafraction_pert0[count_pert] - areafraction_pert1[count_pert], 0.8*pertb)
 
 
+                if (delta_x > 1e-3 * pertb):
+                    perturb_sensitivities = np.append(perturb_sensitivities, delta_x)
+                    perturb_indices = np.append(perturb_indices, global_index)
+
+                count_pert += 1
+        
+        perturb_points_sensitivities[bbb] = perturb_sensitivities
+        perturb_points_indices[bbb] = perturb_indices
+
+    # computes sensitivity based on the perturbation method
+    delArea_list = np.zeros(num_bpts)
+    for bbb in range(0, bpts_xy.shape[0]):
+        # px_ = bpts_xy[bbb,0]
+        # py_ = bpts_xy[bbb,1]
+        delta_sensi = 0.0
+        delta_area = 0.0
+
+        # find approperiate element
+        for eee in range(0, len(perturb_points_indices[bbb])):
+            cur_index = perturb_points_indices[bbb][eee]
+            delta_area += perturb_points_sensitivities[bbb][eee]
+
+            for ggg in range(0, 4):
+                delta_sensi += pySens.get_elem_gpts_sens(cur_index,ggg) * perturb_points_sensitivities[bbb][eee] / 4.0
+    
+        delArea_list[bbb] = delta_area
+
+        perturb_boundary_sensitivities[bbb,0] = -delta_sensi / seglength[bbb] / pertb
+        # make sure area sensitivity is between -1.5 and -0.5
+        perturb_boundary_sensitivities[bbb,1] = -min(delta_area / pertb / seglength[bbb], 1.5)
+        perturb_boundary_sensitivities[bbb,1] = min(perturb_boundary_sensitivities[bbb,1], -0.5)
 
     py_bptSens = pySens.compute_boundary_sens(bpts_xy) # Sensitivites at Boundary points (using least square)
+
+
+    a = np.loadtxt("cpp.txt")
+
+
+    plt.figure(0) # boudnary sensitivity
+    plt.subplot(3,1,1)
+    plt.scatter(a[:,0], a[:,1], s =10, c = a[:,2])
+    plt.colorbar()
+
+    plt.figure(2) # area
+    plt.subplot(2,1,1)
+    plt.scatter(a[:,0], a[:,1], s =10, c = a[:,3])
+    plt.colorbar()
+
+    plt.figure(15) # delta_sensi
+    plt.scatter(a[:,0], a[:,1], s =10, c = a[:,4])
+    plt.colorbar()
+
+    plt.figure(2) # area (FIXME: error here!)
+    plt.subplot(2,1,2)
+    plt.scatter(bpts_xy[:,0], bpts_xy[:,1], s =20, c = delArea_list)
+    plt.colorbar()
+
+    plt.figure(1) # (correct) Gpts_sens
+    plt.scatter(py_GptSens[:,0], py_GptSens[:,1], s =5, c = py_GptSens[:,2])
+    plt.colorbar()
+
+    plt.figure(0) # bpts_sens
+    plt.subplot(3,1,2)
+    plt.scatter(bpts_xy[:,0], bpts_xy[:,1], s =10, c = -py_bptSens[:,2])
+    plt.colorbar()
+    
+    plt.figure(0) # perturbed_sens
+    plt.subplot(3,1,3)
+    plt.scatter(bpts_xy[:,0], bpts_xy[:,1], s =10, c = perturb_boundary_sensitivities[:,0])
+    plt.colorbar()
+
+    plt.show()
+
 
     # if 0: 
     #     placeholder = np.zeros([num_gpts,3])
@@ -206,6 +355,8 @@ for i_HJ in range(0, max_loop):
     bpts_sens_new = np.zeros((num_bpts,2))
     bpts_sens_new[:,0] = -py_bptSens[:,2]
     bpts_sens_new[:,1] = -1.0
+    # bpts_sens_new[:,0] = perturb_boundary_sensitivities[:,0]
+    # bpts_sens_new[:,1] = perturb_boundary_sensitivities[:,1]
 
     lsm_solver.set_BptsSens(bpts_sens_new)
     scales = lsm_solver.get_scale_factors()

@@ -377,6 +377,13 @@ cdef class py_LSM:
         self.levelsetptr.computeVelocities(self.boundaryptr.points) #, time_step, 0, rng)
         self.levelsetptr.computeGradients()
         self.levelsetptr.update(time_step)
+
+    def advect_woWENO(self, np.ndarray[double] bptsVel, double time_step):
+        cdef MersenneTwister rng
+        self.set_boundaryVelocities(bptsVel)
+        self.levelsetptr.computeVelocities(self.boundaryptr.points) #, time_step, 0, rng)
+        self.levelsetptr.computeGradients()
+        self.levelsetptr.update_no_WENO(time_step)
     
     def reinitialise(self):
         self.levelsetptr.reinitialise()        
@@ -391,9 +398,15 @@ cdef class py_LSM:
 
     def get_phi(self):
         return self.levelsetptr.signedDistance 
+
+    def set_phi(self, int index, double value, bool isReplace = True):
+        if (isReplace): 
+            self.levelsetptr.signedDistance[index] = value;
+        else: #addition
+            self.levelsetptr.signedDistance[index] += value;
     
     def Print_results(self,int n_iterations):
-        # self.ioptr.saveLevelSetVTK (n_iterations, self.levelsetptr[0], False, False, "results/level_set") ;
+        self.ioptr.saveLevelSetVTK (n_iterations, self.levelsetptr[0], False, False, "results/level_set") ;
         self.ioptr.saveAreaFractionsVTK (n_iterations, self.meshptr[0], "results/area_fractions") ;
         self.ioptr.saveBoundarySegmentsTXT (n_iterations, self.boundaryptr[0], "results/boundary_segments") ;
 

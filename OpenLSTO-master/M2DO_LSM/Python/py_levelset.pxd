@@ -20,6 +20,7 @@ cdef extern from "./../include/level_set.h":
         LevelSet(Mesh&, vector[Hole], double , unsigned int, bool) except +
         
         bool update(double)
+        bool update_no_WENO(double)
         void reinitialise()
         void computeVelocities(vector[BoundaryPoint]&)        
         double computeVelocities(vector[BoundaryPoint]&, 

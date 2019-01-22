@@ -51,6 +51,9 @@ cdef class py_Sensitivity:
                 cnt += 1
         return self.gpts_xy
 
+    def get_elem_gpts_sens(self, int elem_index, int gauss_index):
+        return self.sens.sensitivities[elem_index].sensitivity_at_gauss_point[gauss_index]
+
     def compute_boundary_sens(self, np.ndarray bpts_xy):
         nBpts = bpts_xy.shape[0]
         bpts_sens = np.zeros((nBpts,3))
