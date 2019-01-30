@@ -36,7 +36,6 @@ cdef class py_Sensitivity:
             fea.meshptr.solid_elements[ii].centroid[0] *= self.fea.scale_x
             fea.meshptr.solid_elements[ii].centroid[1] *= self.fea.scale_y
 
-        
     def compute_compliance_sens(self):
         self.sens.ComputeComplianceSensitivities(False)
         nGpts = self.fea.nELEM * self.fea.element_order**2
@@ -50,6 +49,9 @@ cdef class py_Sensitivity:
                 self.gpts_xy[cnt,2] = self.sens.sensitivities[ii].sensitivity_at_gauss_point[gg]
                 cnt += 1
         return self.gpts_xy
+
+    def get_elem_gpts_sens(self, int elem_index, int gauss_index):
+        return self.sens.sensitivities[elem_index].sensitivity_at_gauss_point[gauss_index]
 
     def compute_boundary_sens(self, np.ndarray bpts_xy):
         nBpts = bpts_xy.shape[0]

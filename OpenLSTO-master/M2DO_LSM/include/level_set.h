@@ -182,6 +182,8 @@ public:
             Whether the signed distance was reinitialised.
      */
     bool update(double);
+
+    bool update_no_WENO(double timeStep);
     
     //! Kill nodes in a region of the domain.
     /*! param points
