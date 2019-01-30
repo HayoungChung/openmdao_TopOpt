@@ -153,7 +153,7 @@ void SensitivityAnalysis :: ComputeComplianceSensitivities (bool time_it) {
     for (int i = 0; i < number_of_elements; i++)
     { 
         // If the element is too soft (very small area fraction)
-        if (study.mesh.solid_elements[i].area_fraction <= 0.001)
+        if (study.mesh.solid_elements[i].area_fraction <= 0.1)
         {
         	// For each gauss point
         	for (int j = 0; j < number_of_gauss_points; j++)
@@ -185,7 +185,8 @@ void SensitivityAnalysis :: ComputeComplianceSensitivities (bool time_it) {
                 Vector<double,-1> CBu;
                 CBu = C.dot(Bu);
                 stress_strain = Bu.dot(CBu);
-                sensitivities[i].sensitivity_at_gauss_point[j] = -stress_strain*study.mesh.solid_elements[i].area_fraction;
+                // sensitivities[i].sensitivity_at_gauss_point[j] = -stress_strain*study.mesh.solid_elements[i].area_fraction;
+                sensitivities[i].sensitivity_at_gauss_point[j] = -stress_strain; // MODIFICATION MADE BY SANDY
         	}
         }
     }

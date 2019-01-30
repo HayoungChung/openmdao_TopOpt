@@ -32,6 +32,7 @@ cdef class py_LSM:
     cdef vector[double] scale_factors
 
     cdef vector[double] displacements
+    cdef vector[double] boundary_velocities
 
     cdef vector[int] isActive, isBound
     cdef bool isHoles
@@ -405,6 +406,16 @@ cdef class py_LSM:
         else: #addition
             self.levelsetptr.signedDistance[index] += value;
     
+    def get_boundaryVelocity(self):
+        self.boundary_velocities.resize(self.nBpts, 0.0)
+        for bb in range(self.nBpts):
+            self.boundary_velocities[bb] = (self.boundaryptr.points[bb].velocity)
+        
+        return self.boundary_velocities
+
+    def get_velocity(self):
+        return self.levelsetptr.velocity
+
     def Print_results(self,int n_iterations):
         self.ioptr.saveLevelSetVTK (n_iterations, self.levelsetptr[0], False, False, "results/level_set") ;
         self.ioptr.saveAreaFractionsVTK (n_iterations, self.meshptr[0], "results/area_fractions") ;

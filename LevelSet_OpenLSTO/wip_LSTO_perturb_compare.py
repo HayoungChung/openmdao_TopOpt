@@ -230,7 +230,12 @@ for i_HJ in range(0, max_loop):
         for ii in range(0, bpts_xy_pert0.shape[0]):
             tmp_px_ = bpts_xy_pert0[ii,0]
             tmp_py_ = bpts_xy_pert0[ii,1]
-            dist_pert = pow(-tmp_px_ + px_ - nelx_pert_0, 2) + pow(-tmp_py_ + py_ - nely_pert_0, 2)
+            dist_pert = pow(-tmp_px_ + px_ - float(nelx_pert_0), 2) + pow(-tmp_py_ + py_ - float(nely_pert_0), 2)
+            # dist_pert_0 = pow(-tmp_px_ + px_ - nelx_pert_0, 2) + pow(-tmp_py_ + py_ - nely_pert_0, 2)
+            # if (abs(dist_pert-dist_pert_0) > 1e-5):
+            #     print(ii)
+            #     exit(0)
+
             dist_pert = dist_pert**0.5
             if (dist_pert < pertb):
                 vel_bpts[ii] = pertb * (1.0 - pow(dist_pert/pertb, 2.0))
@@ -268,6 +273,8 @@ for i_HJ in range(0, max_loop):
 
     # computes sensitivity based on the perturbation method
     delArea_list = np.zeros(num_bpts)
+
+    pFile = open('py_1.txt','ab')
     for bbb in range(0, bpts_xy.shape[0]):
         # px_ = bpts_xy[bbb,0]
         # py_ = bpts_xy[bbb,1]
@@ -293,6 +300,11 @@ for i_HJ in range(0, max_loop):
         perturb_boundary_sensitivities[bbb,1] = -min(delta_area / pertb / seglength[bbb], 1.5)
         perturb_boundary_sensitivities[bbb,1] = min(perturb_boundary_sensitivities[bbb,1], -0.5) #verified
 
+        np.savetxt(pFile,(bpts_xy[bbb,0], bpts_xy[bbb,1], perturb_boundary_sensitivities[bbb,0], delta_area, delta_sensi, perturb_boundary_sensitivities[bbb,1])) #fmt= '%1.5f\t%1.5f\t%1.5f\t%1.5f\t %1.5f\t %1.5f')
+
+    pFile.close()
+
+    exit(0)
     py_bptSens = pySens.compute_boundary_sens(bpts_xy) # Sensitivites at Boundary points (using least square)
     
     if 0: # comparison of sensitivity w.r.t. cpp version
@@ -379,7 +391,8 @@ for i_HJ in range(0, max_loop):
 
         plt.savefig("mdo_sens_%d.png" % i_HJ)
 
-    if 0: 
+    if 1: 
+        a = np.loadtxt("../LSTO_perturbation/cpp_1.txt")
         plt.figure(0) # perturbed_sens
         plt.clf()
         plt.subplot(3,1,1)
@@ -393,7 +406,6 @@ for i_HJ in range(0, max_loop):
         plt.colorbar()
         plt.axis("equal")
 
-        a = np.loadtxt("../LSTO_perturbation/cpp_1.txt")
 
         plt.subplot(3,1,3)
         plt.scatter(bpts_xy[:,0], bpts_xy[:,1], s =1, c = a[:,2])
@@ -404,6 +416,9 @@ for i_HJ in range(0, max_loop):
         print([min(-py_bptSens[:,2]), min(a[:,2]), min(perturb_boundary_sensitivities[:,0])])
         print([max(-py_bptSens[:,2]), max(a[:,2]), max(perturb_boundary_sensitivities[:,0])])
 
+        print([max(a[:,2]-perturb_boundary_sensitivities[:,0])])
+        print([min(a[:,2]-perturb_boundary_sensitivities[:,0])])
+        q = (a[:,2]-perturb_boundary_sensitivities[:,0])
         plt.show()
     # if 0: 
     #     placeholder = np.zeros([num_gpts,3])
@@ -419,14 +434,21 @@ for i_HJ in range(0, max_loop):
     #     # plt.colorbar()
     #     savefig("mdo_gptSens_%d.png" % i_HJ)
 
+    ############################# CPP ###################################
+
     lambdas = np.zeros(2)
     
     bpts_sens_new = np.zeros((num_bpts,2))
-    bpts_sens_new[:,0] = -py_bptSens[:,2]
-    bpts_sens_new[:,1] = -1.0 # WIP: is there any asymmetry? if not, area computation is where ther error comes from...
+    # bpts_sens_new[:,0] = -py_bptSens[:,2]
+    # bpts_sens_new[:,1] = -1.0 # WIP: is there any asymmetry? if not, area computation is where ther error comes from...
 
     # bpts_sens_new[:,0] = perturb_boundary_sensitivities[:,0]
     # bpts_sens_new[:,1] = perturb_boundary_sensitivities[:,1]
+
+    a = np.loadtxt("../LSTO_perturbation/cpp_1.txt")
+    bpts_sens_new[:,0] = a[:,2]
+    bpts_sens_new[:,1] = a[:,5]
+
 
     lsm_solver.set_BptsSens(bpts_sens_new)
     scales = lsm_solver.get_scale_factors()
@@ -480,8 +502,87 @@ for i_HJ in range(0, max_loop):
         lambdas = prob['inputs_comp.lambdas']
         displacements_ = prob['displacement_comp.displacements']
 
-        timestep =  1.0 #abs(lambdas[0]*scales[0])
+        timestep =  abs(lambdas[0]*scales[0])
         Bpt_Vel = displacements_ / timestep
+
+    Bpt_perturb = Bpt_Vel
+    displacements_perturb = displacements_
+    timestep_perturb = timestep
+    lambdas_pertub = lambdas
+
+    ############################# PERTUB ###################################
+    lambdas = np.zeros(2)
+    
+    bpts_sens_new = np.zeros((num_bpts,2))
+    # bpts_sens_new[:,0] = -py_bptSens[:,2]
+    # bpts_sens_new[:,1] = -1.0 # WIP: is there any asymmetry? if not, area computation is where ther error comes from...
+
+    bpts_sens_new[:,0] = perturb_boundary_sensitivities[:,0]
+    bpts_sens_new[:,1] = perturb_boundary_sensitivities[:,1]
+
+
+    lsm_solver.set_BptsSens(bpts_sens_new)
+    scales = lsm_solver.get_scale_factors()
+    (lb2,ub2) = lsm_solver.get_Lambda_Limits()
+
+    constraint_distance = (0.5 * nelx * nely) - areafraction.sum()
+    
+    if 0: # it works for now. (10/24)
+        constraintDistance = np.array([constraint_distance])
+        scaled_constraintDist = lsm_solver.compute_scaledConstraintDistance(constraintDistance)
+
+        def objF_nocallback(x):
+            displacement = lsm_solver.compute_displacement(x)
+            displacement_np = np.asarray(displacement)
+            return lsm_solver.compute_delF(displacement_np)
+
+        def conF_nocallback(x):
+            displacement = lsm_solver.compute_displacement(x)
+            displacement_np = np.asarray(displacement)
+            return lsm_solver.compute_delG(displacement_np, scaled_constraintDist, 1)
+
+        cons = ({'type': 'eq', 'fun': lambda x: conF_nocallback(x)})
+        res = sp_optim.minimize(objF_nocallback, np.zeros(2), method='SLSQP', options={'disp': True},
+                                bounds=((lb2[0], ub2[0]), (lb2[1], ub2[1])),
+                                constraints=cons)
+
+        lambdas = res.x
+        displacements_ = lsm_solver.compute_unscaledDisplacement(lambdas)
+        timestep =  abs(lambdas[0]*scales[0])
+        
+        Bpt_Vel = displacements_ / timestep
+
+    else:
+        model = LSM2D_slpGroup(lsm_solver = lsm_solver, num_bpts = num_bpts, ub = ub2, lb = lb2,
+            Sf = bpts_sens_new[:,0], Sg = bpts_sens_new[:,1], constraintDistance = constraint_distance)
+        
+        prob = Problem(model)
+        prob.setup()
+        
+        if 1: # FIXME: not much difference
+            prob.driver = ScipyOptimizer()
+            prob.driver.options['optimizer'] = 'SLSQP'
+            prob.driver.options['disp'] = True
+            prob.driver.options['tol'] = 1e-10
+        else:
+            prob.driver = pyOptSparseDriver()
+            prob.driver.options['optimizer'] = 'IPOPT'
+            prob.driver.opt_settings['linear_solver'] = 'ma27'
+
+        prob.run_driver()
+        lambdas = prob['inputs_comp.lambdas']
+        displacements_ = prob['displacement_comp.displacements']
+
+        timestep =  abs(lambdas[0]*scales[0])
+        Bpt_Vel = displacements_ / timestep
+
+    Bpt_compare = [bpts_xy[:,0], bpts_xy[:,1], Bpt_perturb, Bpt_Vel]
+
+    np.savetxt("bpt_compare.txt", Bpt_compare)
+    print (timestep - timestep_perturb)
+    print (lambdas-lambdas_pertub)
+    print (displacements_ - displacements_perturb)    ###############################################
+    exit(0)
 
     # advection
     lsm_solver.advect(Bpt_Vel, timestep)
@@ -492,7 +593,7 @@ for i_HJ in range(0, max_loop):
         plt.clf()
         plt.scatter(bpts_xy[:,0],bpts_xy[:,1], 30)
         plt.axis("equal")
-        plt.savefig("mdo_bpts_%d.png" % i_HJ)
+        plt.savefig("TEST_PERTURB/mdo_bpts_%d.png" % i_HJ)
     
 
     print ('loop %d is finished' % i_HJ)
@@ -501,7 +602,7 @@ for i_HJ in range(0, max_loop):
 
     print (compliance, area)    
 
-    fid = open("save/log.txt","a+")
+    fid = open("save_pert/log.txt","a+")
     fid.write(str(compliance) + ", " + str(area) + "\n")
     fid.close()
 
@@ -510,13 +611,13 @@ for i_HJ in range(0, max_loop):
     if i_HJ == 0:
         raw = {}
         raw['mesh'] = nodes
-        filename = 'save/const.pkl'
+        filename = 'save_pert/const.pkl'
         with open(filename, 'wb') as f:
             pickle.dump(raw, f)
 
     raw = {}
     raw['phi'] = phi
-    filename = 'save/data%03i.pkl' % i_HJ
+    filename = 'save_pert/data%03i.pkl' % i_HJ
     with open(filename, 'wb') as f:
         pickle.dump(raw, f)
 

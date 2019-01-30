@@ -1,6 +1,7 @@
 # this is a up-to-date runing script (update on plotings and savings)
 # OCT 18
 import numpy as np
+from pylab import *
 import scipy.sparse
 import scipy.sparse.linalg
 from openmdao.api import Problem, view_model, ScipyOptimizer, pyOptSparseDriver
@@ -28,8 +29,8 @@ except:
 
 
 # FEM Mesh
-nelx = 80
-nely = 40
+nelx = 160
+nely = 80
 
 length_x = 160.
 length_y = 80.
@@ -111,6 +112,8 @@ if ((nelx == 160) and (nely == 80)): # 160 x 80 case
                     [80, 66, 5],
                     [112, 66, 5],
                     [144, 66, 5]],dtype=np.float)
+    hole = append(hole,[[0., 0., 0.1], [0., 80., 0.1], [160., 0., 0.1], [160., 80., 0.1]], axis = 0)
+
     lsm_solver.add_holes(locx = list(hole[:,0]), locy = list(hole[:,1]), radius = list(hole[:,2]))
 
 elif ((nelx == 80) and (nely == 40)): # 160 x 80 case
@@ -143,7 +146,7 @@ elif ((nelx == 80) and (nely == 40)): # 160 x 80 case
                     [72, 33, 2.5]],dtype=np.float)
     lsm_solver.add_holes(locx = list(hole[:,0]), locy = list(hole[:,1]), radius = list(hole[:,2]))
 # else:
-#     lsm_solver.add_holes(locx = [], locy = [], radius = [])
+    # lsm_solver.add_holes(locx = [], locy = [], radius = [])
 
 lsm_solver.set_levelset()
 
@@ -168,6 +171,11 @@ for i_HJ in range(0, max_loop):
     K_sparse = scipy.sparse.csc_matrix((npvals, (nprows,npcols))    , 
                             shape=(num_dofs_w_lambda,num_dofs_w_lambda))
     u = scipy.sparse.linalg.spsolve(K_sparse, GF)[:num_dofs]
+
+    print(min(u))
+    print(sum(u))
+    print(np.linalg.norm(u))
+    exit(0)
 
     Order_gpts = 2 # number of Gauss Points
     num_gpts = num_elems * Order_gpts**2

@@ -101,11 +101,16 @@ prob.driver.opt_settings['linear_solver'] = 'ma27'
 prob.setup()
 # view_model(prob)
 
-if 1:
-    prob.run_driver()
-else:
-    prob.check_partials(compact_print=True)
-    prob.run_model()
+prob.run_once()
+total = prob.compute_totals()
+a = prob.compute_totals(of=['objective_comp.objective'], wrt=['inputs_comp.dvs'])
+a = prob.compute_totals(of=['penalization_comp.y'], wrt=['inputs_comp.dvs'])
+
+# if 1:
+#     prob.run_driver()
+# else:
+#     prob.check_partials(compact_print=True)
+#     prob.run_model()
 
 # prob.run_model()
 # totals = prob.compute_totals()

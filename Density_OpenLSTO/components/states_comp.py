@@ -48,7 +48,7 @@ class StatesComp(ImplicitComponent):
 
         BCid = fem_solver.get_boundary()
         self.num_dofs_w_lambda = num_dofs_w_lambda = num_dofs + len(BCid)
-        
+
         if isSIMP is True:
             self.add_input('multipliers', shape=num_elems) # simp
         else:

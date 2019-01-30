@@ -1,9 +1,10 @@
 # this is a up-to-date runing script (update on plotings and savings)
-# try perturbation the boundary
+# try perturbation the boundary 
+# working code for optimization (compared with wip_run_LSTO_perturb...)
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
-from openmdao.api import Problem, view_model, ScipyOptimizer, pyOptSparseDriver
+from openmdao.api import Problem, view_model, ScipyOptimizer, pyOptSparseDriver, IndepVarComp, ExplicitComponent
 from utils_new.rescale import rescale_lambdas
 
 import sys
@@ -26,6 +27,7 @@ try:
 except:
     import pickle
 
+from DiscretizeComp import DiscretizeComp
 
 # perturb?
 isPerturb = True
@@ -230,7 +232,7 @@ for i_HJ in range(0, max_loop):
         for ii in range(0, bpts_xy_pert0.shape[0]):
             tmp_px_ = bpts_xy_pert0[ii,0]
             tmp_py_ = bpts_xy_pert0[ii,1]
-            dist_pert = pow(-tmp_px_ + px_ - nelx_pert_0, 2) + pow(-tmp_py_ + py_ - nely_pert_0, 2)
+            dist_pert = pow(-tmp_px_ + px_ - float(nelx_pert_0), 2) + pow(-tmp_py_ + py_ - float(nely_pert_0), 2)
             dist_pert = dist_pert**0.5
             if (dist_pert < pertb):
                 vel_bpts[ii] = pertb * (1.0 - pow(dist_pert/pertb, 2.0))
@@ -266,6 +268,20 @@ for i_HJ in range(0, max_loop):
         perturb_points_sensitivities[bbb] = perturb_sensitivities
         perturb_points_indices[bbb] = perturb_indices
 
+    # TODO: TEST with previous area computation
+    prob = Problem()
+    indeps = prob.model.add_subsystem('indeps', IndepVarComp())
+    indeps.add_output('points', bpts_xy)
+    disc_comp = DiscretizeComp(lsm_solver=lsm_solver, nelx = nelx, nely = nely, nBpts=  num_bpts, perturb = 0.2)
+    prob.model.add_subsystem('disc_comp', disc_comp)
+    prob.model.connect('indeps.points', 'disc_comp.points')
+    prob.setup()
+
+    prob.run_once()
+    total = prob.compute_totals(['disc_comp.density'],['indeps.points'])
+    Aij = total['disc_comp.density','indeps.points']
+
+    
     # computes sensitivity based on the perturbation method
     delArea_list = np.zeros(num_bpts)
     for bbb in range(0, bpts_xy.shape[0]):
@@ -296,7 +312,7 @@ for i_HJ in range(0, max_loop):
     py_bptSens = pySens.compute_boundary_sens(bpts_xy) # Sensitivites at Boundary points (using least square)
     
     if 0: # comparison of sensitivity w.r.t. cpp version
-        a = np.loadtxt("../LSTO_perturbation/cpp_1.txt")
+        a = np.loadtxt("cpp.txt")
         gsens_cpp  =  np.loadtxt("gpts_Sens.txt")
 
         plt.figure(0) # boudnary sensitivity
@@ -379,32 +395,6 @@ for i_HJ in range(0, max_loop):
 
         plt.savefig("mdo_sens_%d.png" % i_HJ)
 
-    if 0: 
-        plt.figure(0) # perturbed_sens
-        plt.clf()
-        plt.subplot(3,1,1)
-        plt.scatter(bpts_xy[:,0], bpts_xy[:,1], s =1, c = perturb_boundary_sensitivities[:,0])
-        plt.colorbar()
-        plt.axis("equal")
-
-
-        plt.subplot(3,1,2)
-        plt.scatter(bpts_xy[:,0], bpts_xy[:,1], s =1, c = -py_bptSens[:,2])
-        plt.colorbar()
-        plt.axis("equal")
-
-        a = np.loadtxt("../LSTO_perturbation/cpp_1.txt")
-
-        plt.subplot(3,1,3)
-        plt.scatter(bpts_xy[:,0], bpts_xy[:,1], s =1, c = a[:,2])
-        plt.colorbar()
-        plt.axis("equal")
-
-
-        print([min(-py_bptSens[:,2]), min(a[:,2]), min(perturb_boundary_sensitivities[:,0])])
-        print([max(-py_bptSens[:,2]), max(a[:,2]), max(perturb_boundary_sensitivities[:,0])])
-
-        plt.show()
     # if 0: 
     #     placeholder = np.zeros([num_gpts,3])
     #     for i in range(0, num_gpts):
@@ -422,11 +412,10 @@ for i_HJ in range(0, max_loop):
     lambdas = np.zeros(2)
     
     bpts_sens_new = np.zeros((num_bpts,2))
-    bpts_sens_new[:,0] = -py_bptSens[:,2]
-    bpts_sens_new[:,1] = -1.0 # WIP: is there any asymmetry? if not, area computation is where ther error comes from...
-
-    # bpts_sens_new[:,0] = perturb_boundary_sensitivities[:,0]
-    # bpts_sens_new[:,1] = perturb_boundary_sensitivities[:,1]
+    # bpts_sens_new[:,0] = -py_bptSens[:,2]
+    # bpts_sens_new[:,1] = -1.0
+    bpts_sens_new[:,0] = perturb_boundary_sensitivities[:,0]
+    bpts_sens_new[:,1] = perturb_boundary_sensitivities[:,1]
 
     lsm_solver.set_BptsSens(bpts_sens_new)
     scales = lsm_solver.get_scale_factors()
@@ -459,38 +448,121 @@ for i_HJ in range(0, max_loop):
         
         Bpt_Vel = displacements_ / timestep
 
-    else:
-        model = LSM2D_slpGroup(lsm_solver = lsm_solver, num_bpts = num_bpts, ub = ub2, lb = lb2,
+    if 1:  # bisection..
+        Sf = bpts_sens_new[:,0]
+        Sg = bpts_sens_new[:,1]
+        Cf = np.multiply(Sf, seglength)
+        Cg = np.multiply(-Sg, seglength)
+
+        percent_area = 0.5
+        target_area = sum(areafraction)
+
+        # target area
+        for ii in range(num_bpts):
+            target_area += Cg[ii] * percent_area * (-movelimit)
+        target_area = max(0.5 * length_x * length_y, target_area)
+
+        print("target = ")
+        print(target_area/length_x/length_y)
+
+        # distance vector
+        domain_distance_vector = np.zeros(num_bpts)
+        for ii in range(num_bpts): 
+            px_ = bpts_xy[ii,0]
+            py_ = bpts_xy[ii,1]
+            # assume square design domain
+            domdist = min([abs(px_ -0.0), abs(px_ - length_x), abs(py_ - length_y), abs(py_ - 0.0)])
+            if ( (px_ >= length_x) or ( px_ <= 0.0) or (py_ >= length_y) or (py_ <= 0.0) ):
+                domdist = -1.0 * domdist
+            
+            domain_distance_vector[ii] = min(domdist, movelimit)
+
+        lambda_0 = 0.0 # default parameter
+        default_area = sum(areafraction)
+        for ii in range(num_bpts):
+            default_area += Cg[ii]*min(domain_distance_vector[ii], movelimit*Sg[ii] + lambda_0*Sf[ii])
+
+
+        delta_lambda = 0.1 # perturbation
+        for iITER in range(20):
+            
+            lambda_curr = lambda_0
+            new_area0 = sum(areafraction)
+            for kk in range(num_bpts):
+                new_area0 += Cg[kk]*min( domain_distance_vector[kk], movelimit*Sg[kk] + lambda_curr*Sf[kk] )
+
+            lambda_curr = lambda_0 + delta_lambda
+            new_area2 = sum(areafraction)
+            for kk in range(num_bpts):
+                new_area2 += Cg[kk]*min( domain_distance_vector[kk], movelimit*Sg[kk] + lambda_curr*Sf[kk] )
+
+            lambda_curr = lambda_0 - delta_lambda
+            new_area1 = sum(areafraction)
+            for kk in range(num_bpts):
+                new_area1 += Cg[kk]*min( domain_distance_vector[kk], movelimit*Sg[kk] + lambda_curr*Sf[kk] )
+
+            slope = (new_area2 - new_area1) / 2 / delta_lambda
+
+            lambda_0 -= (new_area0 - target_area) / slope
+
+            # termination
+            if (abs(new_area0 - target_area) < 1.0E-3):
+                print([new_area0/length_x/length_y, target_area/length_x/length_y])
+                break
+            
+        # iteration fin
+
+        lambda_f = lambda_0 
+            
+        # velocity calculation
+        Bpt_Vel = np.zeros(num_bpts)
+        for ii in range(num_bpts):
+            domdist = domain_distance_vector[ii]
+            Bpt_Vel[ii] = -1.0*min( lambda_f*Sf[ii] + movelimit*Sg[ii], domdist)
+        
+        abs_Vel = max(np.abs(Bpt_Vel))
+
+        if (abs_Vel > movelimit):
+            Bpt_Vel *= movelimit/abs_Vel
+
+        timestep = 1.0    
+    
+    if 0:
+        model = LSM2D_slpGroup(lsm_solver = lsm_solver, num_bpts = num_bpts, ub = ub2, lb = [lb2[0],0.499],
             Sf = bpts_sens_new[:,0], Sg = bpts_sens_new[:,1], constraintDistance = constraint_distance)
         
+
         prob = Problem(model)
         prob.setup()
         
-        if 1: # FIXME: not much difference
+        if 0: # FIXME: not much difference
             prob.driver = ScipyOptimizer()
             prob.driver.options['optimizer'] = 'SLSQP'
             prob.driver.options['disp'] = True
             prob.driver.options['tol'] = 1e-10
-        else:
+        if 1:
             prob.driver = pyOptSparseDriver()
             prob.driver.options['optimizer'] = 'IPOPT'
             prob.driver.opt_settings['linear_solver'] = 'ma27'
+        # if 1: 
+        #     prob.driver =
 
         prob.run_driver()
         lambdas = prob['inputs_comp.lambdas']
         displacements_ = prob['displacement_comp.displacements']
 
-        timestep =  1.0 #abs(lambdas[0]*scales[0])
+        timestep =  abs(lambdas[0]*scales[0])
         Bpt_Vel = displacements_ / timestep
 
     # advection
+    print (timestep)
     lsm_solver.advect(Bpt_Vel, timestep)
     lsm_solver.reinitialise()
     
     if 1: # quick plot
         plt.figure(1)
         plt.clf()
-        plt.scatter(bpts_xy[:,0],bpts_xy[:,1], 30)
+        plt.scatter(bpts_xy[:,0],bpts_xy[:,1], 10)
         plt.axis("equal")
         plt.savefig("mdo_bpts_%d.png" % i_HJ)
     

@@ -380,6 +380,7 @@ for i_HJ in range(0, max_loop):
         plt.savefig("mdo_sens_%d.png" % i_HJ)
 
     if 0: 
+        a = np.loadtxt("../LSTO_perturbation/cpp_" + str(1) + ".txt")
         plt.figure(0) # perturbed_sens
         plt.clf()
         plt.subplot(3,1,1)
@@ -393,7 +394,6 @@ for i_HJ in range(0, max_loop):
         plt.colorbar()
         plt.axis("equal")
 
-        a = np.loadtxt("../LSTO_perturbation/cpp_1.txt")
 
         plt.subplot(3,1,3)
         plt.scatter(bpts_xy[:,0], bpts_xy[:,1], s =1, c = a[:,2])
@@ -422,11 +422,16 @@ for i_HJ in range(0, max_loop):
     lambdas = np.zeros(2)
     
     bpts_sens_new = np.zeros((num_bpts,2))
-    bpts_sens_new[:,0] = -py_bptSens[:,2]
-    bpts_sens_new[:,1] = -1.0 # WIP: is there any asymmetry? if not, area computation is where ther error comes from...
+    # bpts_sens_new[:,0] = -py_bptSens[:,2]
+    # bpts_sens_new[:,1] = -1.0 # WIP: is there any asymmetry? if not, area computation is where ther error comes from...
 
     # bpts_sens_new[:,0] = perturb_boundary_sensitivities[:,0]
     # bpts_sens_new[:,1] = perturb_boundary_sensitivities[:,1]
+
+    a = np.loadtxt("../LSTO_perturbation/cpp_" + str(i_HJ+1) + ".txt")
+
+    bpts_sens_new[:,0] = a[:,2]
+    bpts_sens_new[:,1] = a[:,5]
 
     lsm_solver.set_BptsSens(bpts_sens_new)
     scales = lsm_solver.get_scale_factors()
@@ -480,7 +485,7 @@ for i_HJ in range(0, max_loop):
         lambdas = prob['inputs_comp.lambdas']
         displacements_ = prob['displacement_comp.displacements']
 
-        timestep =  1.0 #abs(lambdas[0]*scales[0])
+        timestep = abs(lambdas[0]*scales[0])
         Bpt_Vel = displacements_ / timestep
 
     # advection
@@ -490,9 +495,11 @@ for i_HJ in range(0, max_loop):
     if 1: # quick plot
         plt.figure(1)
         plt.clf()
-        plt.scatter(bpts_xy[:,0],bpts_xy[:,1], 30)
+        (bpts_xy_, areafraction_, seglength_) = lsm_solver.discretise()
+
+        plt.scatter(bpts_xy_[:,0],bpts_xy_[:,1], 30)
         plt.axis("equal")
-        plt.savefig("mdo_bpts_%d.png" % i_HJ)
+        plt.savefig("Sensfromcpp/mdo_bpts_%d.png" % i_HJ)
     
 
     print ('loop %d is finished' % i_HJ)

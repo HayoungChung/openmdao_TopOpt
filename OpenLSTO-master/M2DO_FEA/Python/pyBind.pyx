@@ -36,7 +36,6 @@ cdef class py_Sensitivity:
             fea.meshptr.solid_elements[ii].centroid[0] *= self.fea.scale_x
             fea.meshptr.solid_elements[ii].centroid[1] *= self.fea.scale_y
 
-        
     def compute_compliance_sens(self):
         self.sens.ComputeComplianceSensitivities(False)
         nGpts = self.fea.nELEM * self.fea.element_order**2
