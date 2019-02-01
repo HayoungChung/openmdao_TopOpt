@@ -16,7 +16,7 @@ from pylab import *
 from components.states_comp import StatesComp as SIMP_StatesComp # R = KU-F
 from components.compliance_comp import ComplianceComp as SIMP_ComplianceComp
 from components.disp_comp import DispComp as SIMP_DispComp
-from components.weight_comp import WeightComp as SIMP_WeightComp
+from components.weight_comp import WeightComp_real as SIMP_WeightComp
 
 # from LSTO components
 from components_new.ConstraintComp import ConstraintComp as LSTO_Constraint
@@ -26,7 +26,7 @@ from components_new.ObjectiveComp import ObjectiveComp as LSTO_ObjectiveComp
 from components_new.ScalingComp  import ScalingComp as LSTO_ScalingComp
 
 # from perturbation
-from DiscretizeComp import DiscretizeComp
+from DiscretizeComp import VnPerturbComp # DiscretizeComp
 # from stress_comp import MaxStressComp
 
 import scipy.sparse
@@ -40,7 +40,7 @@ class PerturbGroup(Group):
         self.options.declare('nelx', types=int)
         self.options.declare('nely', types=int)
         self.options.declare('force', types= ndarray)
-        # self.options.declare('movelimit', types= float)
+        self.options.declare('movelimit', types= float)
     
     def setup(self):
         self.lsm_solver = lsm_solver = self.options['lsm_solver']
@@ -48,7 +48,7 @@ class PerturbGroup(Group):
         self.force = force = self.options['force']
         self.nelx = nelx = self.options['nelx']
         self.nely = nely = self.options['nely']
-        # self.movelimit = movelimit = self.options['movelimit']
+        self.movelimit = movelimit = self.options['movelimit']
 
         phi = lsm_solver.get_phi()
         nELEM = self.nELEM = nelx*nely
@@ -90,15 +90,18 @@ class PerturbGroup(Group):
         # SIMP_1. get boundary points
         comp_ = IndepVarComp()
         comp_.add_output('rhs', val = force)
-        comp_.add_output('bpts', val = bpts_xy)
+        comp_.add_output('Vn', val = 0.0, shape=nBpts)
         self.add_subsystem('inputs_comp', comp_)
-        self.connect('inputs_comp.bpts', 'area_comp.points')
+        # self.connect('inputs_comp.bpts', 'area_comp.points')
+        self.connect('inputs_comp.Vn', 'area_comp.Vn')
         self.connect('inputs_comp.rhs', 'states_comp.rhs')
         self.connect('inputs_comp.rhs', 'GF_comp.states')
 
         # SIMP_2. boundary-to-area
-        comp_ = DiscretizeComp(lsm_solver=lsm_solver, nelx=nelx, nely=nely, 
-                                    nBpts=nBpts, perturb=0.2)
+        # comp_ = DiscretizeComp(lsm_solver=lsm_solver, nelx=nelx, nely=nely, 
+        #                             nBpts=nBpts, perturb=0.2)
+        comp_ = VnPerturbComp(lsm_solver=lsm_solver, nelx=nelx, nely=nely, 
+                                nBpts=nBpts, perturb=0.2)
         self.add_subsystem('area_comp', comp_)
         self.connect('area_comp.density', 'states_comp.multipliers')
         self.connect('area_comp.density', 'weight_comp.x')
@@ -130,12 +133,12 @@ class PerturbGroup(Group):
         # SIMP_6. total area
         comp_ = SIMP_WeightComp(num=nELEM)
         self.add_subsystem('weight_comp', comp_)
-        self.add_constraint('weight_comp.weight', upper = 0.4)
+        self.add_constraint('weight_comp.weight', upper = 0.4*nelx*nely)
 
 
         # fixme: solve_linear() is called so many times 
         # dummy
-        self.add_design_var('inputs_comp.bpts') # without this, total derivative is not calculated
+        self.add_design_var('inputs_comp.Vn') # without this, total derivative is not calculated
         
 
         # self.options['assembled_jac_type'] = 'csc'
