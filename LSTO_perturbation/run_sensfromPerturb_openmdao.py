@@ -189,7 +189,7 @@ for i_HJ in range(240):
 
     nBpts = int(bpts_xy.shape[0])
     Sf = -Sf[0][:nBpts]
-    Sg = -Sg[0][:nBpts]*length_x*length_y
+    Sg = -Sg[0][:nBpts]
 
     # suboptimization
     if 1:  # bisection..
@@ -205,7 +205,7 @@ for i_HJ in range(240):
         target_area = max(0.5 * length_x * length_y, target_area)
 
         print("target = ")
-        print(target_area/length_x/length_y)
+        print(target_area)
 
         # distance vector
         domain_distance_vector = np.zeros(nBpts)
