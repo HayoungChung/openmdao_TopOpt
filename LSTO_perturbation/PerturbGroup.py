@@ -27,6 +27,7 @@ from components_new.ScalingComp  import ScalingComp as LSTO_ScalingComp
 
 # from perturbation
 from DiscretizeComp import DiscretizeComp
+# from stress_comp import MaxStressComp
 
 import scipy.sparse
 import scipy.sparse.linalg
@@ -39,6 +40,7 @@ class PerturbGroup(Group):
         self.options.declare('nelx', types=int)
         self.options.declare('nely', types=int)
         self.options.declare('force', types= ndarray)
+        # self.options.declare('movelimit', types= float)
     
     def setup(self):
         self.lsm_solver = lsm_solver = self.options['lsm_solver']
@@ -46,6 +48,7 @@ class PerturbGroup(Group):
         self.force = force = self.options['force']
         self.nelx = nelx = self.options['nelx']
         self.nely = nely = self.options['nely']
+        # self.movelimit = movelimit = self.options['movelimit']
 
         phi = lsm_solver.get_phi()
         nELEM = self.nELEM = nelx*nely
@@ -118,6 +121,11 @@ class PerturbGroup(Group):
         comp_ = SIMP_ComplianceComp(num_nodes_x = nelx+1, num_nodes_y = nely+1)
         self.add_subsystem('compliance_comp', comp_)
         self.add_objective('compliance_comp.compliance')
+
+        # # SIMP_5. maximum von mises
+        # comp_ = MaxStressComp(nelx = nelx, nely = nely, fea_solver=fea_solver)
+        # self.add_subsystem('compliance_comp', comp_)
+        # self.add_objective('compliance_comp.maxStress')
 
         # SIMP_6. total area
         comp_ = SIMP_WeightComp(num=nELEM)

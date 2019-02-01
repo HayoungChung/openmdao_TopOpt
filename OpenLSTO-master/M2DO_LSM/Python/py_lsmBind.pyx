@@ -402,9 +402,9 @@ cdef class py_LSM:
 
     def set_phi(self, int index, double value, bool isReplace = True):
         if (isReplace): 
-            self.levelsetptr.signedDistance[index] = value;
+            self.levelsetptr.signedDistance[index] = value
         else: #addition
-            self.levelsetptr.signedDistance[index] += value;
+            self.levelsetptr.signedDistance[index] += value
     
     def get_boundaryVelocity(self):
         self.boundary_velocities.resize(self.nBpts, 0.0)

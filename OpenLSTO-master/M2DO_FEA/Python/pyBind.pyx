@@ -153,6 +153,14 @@ cdef class py_FEA:
         del self.neumannptr
         return self.studyptr.f
 
+    def set_stress(self, vector[double] u_in):
+        self.studyptr.ComputeStress(u_in)
+
+    def get_stress(self, int eid):
+        loc = self.studyptr.gpts_stress[eid].loc
+        stress = self.studyptr.gpts_stress[eid].stress
+        return (loc, stress)
+
     def solve_FE(self):
         ''' temporary checkup function '''
         cdef vector[double] u_guess;

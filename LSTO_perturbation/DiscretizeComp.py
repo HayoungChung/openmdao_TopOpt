@@ -25,18 +25,12 @@ class DiscretizeComp(ExplicitComponent):
         self.add_output('density', shape=nELEM)
         self.cnt_tmp = 0
 
-
         (bpts_xy, areafraction, seglength) = self.lsm_solver.discretise()
         self.seglength = seglength
         
         (row, col, val) = self._get_pertb_partials_(bpts_xy)
         self.declare_partials('density', 'points', rows = row, cols = col, val = val)
         
-        # print(row)
-        # print(val)
-        # print(val)
-
-
     def compute(self, inputs, outputs):
         print(self.cnt_tmp)
         self.cnt_tmp += 1
