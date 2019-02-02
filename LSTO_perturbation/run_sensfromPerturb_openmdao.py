@@ -22,6 +22,7 @@ from py_lsmBind import py_LSM
 from groups.simp_group import SimpGroup #test
 
 from PerturbGroup import ComplianceGroup as PerturbGroup
+from PerturbGroup import StressGroup 
 print("hello world")
 
 
@@ -29,12 +30,16 @@ print("hello world")
 isPerturb = True
 pertb = 0.2
 
-# FEM Mesh
-nelx = 160
-nely = 80
+#problem?
+isCompliance = False
+isStress = True
 
-length_x = 160.
-length_y = 80.
+# FEM Mesh
+nelx = 4
+nely = 4
+
+length_x = 4.
+length_y = 4.
 
 ls2fe_x = length_x/nelx
 ls2fe_y = length_y/nely
@@ -79,6 +84,7 @@ tol = np.array([1e-3, 1e-3])
 GF_ = fea_solver.set_force(coord = coord,tol = tol, direction = 1, f = -1.0)
 GF = np.zeros(nDOF_withLag)
 GF[:nDOF] = GF_
+print(sum(GF_))
 
 # =========================================
 
@@ -156,6 +162,11 @@ elif ((nelx == 80) and (nely == 40)): # 160 x 80 case
     if (isPerturb):
         hole = append(hole,[[0., 0., 0.1], [0., 40., 0.1], [80., 0., 0.1], [80., 40., 0.1]], axis = 0)
     lsm_solver.add_holes(locx = list(hole[:,0]), locy = list(hole[:,1]), radius = list(hole[:,2]))
+else:     # temporal fix
+    hole = array([[2., 2., 1]])
+    hole = append(hole,[[0., 0., 0.1], [0., 2., 0.1], [2., 0., 0.1], [2., 2., 0.1]], axis = 0)    
+    lsm_solver.add_holes(locx = list(hole[:,0]), locy = list(hole[:,1]), radius = list(hole[:,2]))
+    
 
 
 lsm_solver.set_levelset()
@@ -163,40 +174,48 @@ lsm_solver.set_levelset()
 for i_HJ in range(240):
     (bpts_xy, areafraction, seglength) = lsm_solver.discretise()
 
-    if 1:
+    if (isCompliance):
         model = PerturbGroup(
             fea_solver = fea_solver,
             lsm_solver = lsm_solver, 
             nelx = nelx, 
             nely = nely,
             force = GF, movelimit = movelimit)
-    else:
-        model = SimpGroup(fam_solver=fea_solver, force=GF,
-                        num_elem_x=nelx, num_elem_y=nely,
-                        penal=3, volume_fraction=0.5)
+    elif(isStress):
+        model = StressGroup(
+            fea_solver = fea_solver,
+            lsm_solver = lsm_solver, 
+            nelx = nelx, 
+            nely = nely,
+            force = GF, movelimit = movelimit,
+            pval = 9.0)
+
 
     prob = Problem(model)
 
-    prob.driver = pyOptSparseDriver()
-    prob.driver.options['optimizer'] = 'IPOPT'
-    prob.driver.opt_settings['linear_solver'] = 'ma27'
+    prob.setup()
+    prob.run_once() # NOTE: this is necessary as otherwise check_partials() assumes all values as 1.0 
+    prob.check_partials(includes=['pVM_comp', 'VMstress_comp'], compact_print=True)
+    # prob.driver = pyOptSparseDriver()
+    # prob.driver.options['optimizer'] = 'IPOPT'
+    # prob.driver.opt_settings['linear_solver'] = 'ma27'
 
 
-    prob.setup(check=False)
     # view_model(prob)
-    # exit()
-    prob.run_once()
+    exit()
 
     total = prob.compute_totals() # evoke solve_linear() once.
-    Sf = total['compliance_comp.compliance','inputs_comp.Vn']
-    Sg = total['weight_comp.weight','inputs_comp.Vn']
+    if (isCompliance):
+        Sf = total['compliance_comp.compliance','inputs_comp.Vn']
+        Sg = total['weight_comp.weight','inputs_comp.Vn']
+    elif (isStress):
+        Sf = total['pnorm_comp.pnorm','inputs_comp.Vn']
+        Sg = total['weight_comp.weight','inputs_comp.Vn']
 
     nBpts = int(bpts_xy.shape[0])
     Sf = -Sf[0][:nBpts]
-    Sg = -Sg[0][:nBpts]
+    Sg = -Sg[0][:nBpts]    
 
-    
-    
     # suboptimization
     if 1:  # bisection..
         Cf = np.multiply(Sf, seglength)
@@ -291,11 +310,18 @@ for i_HJ in range(240):
     u = prob['disp_comp.disp']
     compliance = np.dot(u,GF_)
 
-    print (compliance, area)
+    if isCompliance:
+        print (compliance, area)
 
-    fid = open("save/log.txt","a+")
-    fid.write(str(compliance) + ", " + str(area) + "\n")
-    fid.close()
+        fid = open("save/log.txt","a+")
+        fid.write(str(compliance) + ", " + str(area) + "\n")
+        fid.close()
+    elif isStress:
+        print (prob['pnorm_comp.pnorm'][0], area)
+
+        fid = open("save/log.txt","a+")
+        fid.write(str(prob['pnorm_comp.pnorm'][0]) + ", " + str(area) + "\n")
+        fid.close()
 
     phi = lsm_solver.get_phi()
 

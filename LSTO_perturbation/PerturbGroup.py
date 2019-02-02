@@ -28,6 +28,7 @@ from components_new.ScalingComp  import ScalingComp as LSTO_ScalingComp
 # from perturbation
 from DiscretizeComp import VnPerturbComp # DiscretizeComp
 # from stress_comp import MaxStressComp
+from stress_comp import VMStressComp, pVmComp, pnormComp, BodyIntegComp
 
 import scipy.sparse
 import scipy.sparse.linalg
@@ -58,6 +59,68 @@ class StressGroup(Group):
 
         (bpts_xy, areafraction, segLength) = lsm_solver.discretise()
         nBpts = self.nBpts = bpts_xy.shape[0]
+
+        # 0. boundary condition setup (via Lagrange multiplier)
+        (nodes, elem, elem_dof) = fea_solver.get_mesh()
+        length_x = max(nodes[:, 0])
+        length_y = max(nodes[:, 1])
+        
+        # SIMP_1. get boundary points
+        comp_ = IndepVarComp()
+        comp_.add_output('rhs', val = force)
+        comp_.add_output('Vn', val = 0.0, shape=nBpts)
+        self.add_subsystem('inputs_comp', comp_)
+        # self.connect('inputs_comp.bpts', 'area_comp.points')
+        self.connect('inputs_comp.Vn', 'area_comp.Vn')
+        self.connect('inputs_comp.rhs', 'states_comp.rhs')
+
+        # SIMP_2. boundary-to-area
+        # comp_ = DiscretizeComp(lsm_solver=lsm_solver, nelx=nelx, nely=nely, 
+        #                             nBpts=nBpts, perturb=0.2)
+        comp_ = VnPerturbComp(lsm_solver=lsm_solver, nelx=nelx, nely=nely, 
+                                nBpts=nBpts, perturb=0.2)
+        self.add_subsystem('area_comp', comp_)
+        self.connect('area_comp.density', 'states_comp.multipliers')
+        self.connect('area_comp.density', 'weight_comp.x')
+
+        # SIMP_3. area-to-state
+        comp_ = SIMP_StatesComp(fem_solver=fea_solver, num_nodes_x=nelx+1, num_nodes_y=nely+1, isSIMP=True)
+        self.add_subsystem('states_comp', comp_)
+        self.connect('states_comp.states', 'disp_comp.states')
+
+        # SIMP_4. extract out lagrange multipliers
+        comp_ = SIMP_DispComp(num_nodes_x = nelx+1, num_nodes_y = nely+1)
+        self.add_subsystem('disp_comp', comp_)
+        self.connect('disp_comp.disp', 'VMstress_comp.disp')
+
+        # SIMP_5. VM stress
+        comp_ = VMStressComp(fea_solver=fea_solver, nelx=nelx, nely=nely, length_x=length_x, length_y=length_y, order=1.0)
+        self.add_subsystem('VMstress_comp', comp_)
+        self.connect('VMstress_comp.vmStress', 'pVM_comp.x')
+
+        # SIMP_5.1. VM^p stress
+        comp_ = pVmComp(pval=pval, nelx=nelx, nely=nely)
+        self.add_subsystem('pVM_comp', comp_)
+        self.connect('pVM_comp.xp', 'Integ_pVm_comp.x')
+
+        # SIMP_5.2. int_omega VM^p 
+        comp_ = BodyIntegComp(nelx=nelx, nely=nely, length_x=length_x, length_y=length_y) # partial verified
+        self.add_subsystem('Integ_pVm_comp', comp_)
+        self.connect('Integ_pVm_comp.y', 'pnorm_comp.x')
+
+        # SIMP_5.3. pnorm
+        comp_ = pnormComp(nelx=nelx, nely=nely, pval=pval) # partial verified
+        self.add_subsystem('pnorm_comp', comp_)
+        self.add_objective('pnorm_comp.pnorm')
+
+        # SIMP_6. total area
+        comp_ = SIMP_WeightComp(num=nELEM)
+        self.add_subsystem('weight_comp', comp_)
+        self.add_constraint('weight_comp.weight', upper = 0.4*nelx*nely)
+
+        # dummy
+        self.add_design_var('inputs_comp.Vn') # without this, total derivative is not calculated
+
 
 class ComplianceGroup(Group):
 
