@@ -21,7 +21,7 @@ from py_lsmBind import py_LSM
 
 from groups.simp_group import SimpGroup #test
 
-from PerturbGroup import PerturbGroup
+from PerturbGroup import ComplianceGroup as PerturbGroup
 print("hello world")
 
 
@@ -176,11 +176,15 @@ for i_HJ in range(240):
                         penal=3, volume_fraction=0.5)
 
     prob = Problem(model)
+
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = 'IPOPT'
     prob.driver.opt_settings['linear_solver'] = 'ma27'
 
+
     prob.setup(check=False)
+    # view_model(prob)
+    # exit()
     prob.run_once()
 
     total = prob.compute_totals() # evoke solve_linear() once.
@@ -191,6 +195,8 @@ for i_HJ in range(240):
     Sf = -Sf[0][:nBpts]
     Sg = -Sg[0][:nBpts]
 
+    
+    
     # suboptimization
     if 1:  # bisection..
         Cf = np.multiply(Sf, seglength)
@@ -252,20 +258,20 @@ for i_HJ in range(240):
                 print([new_area0/length_x/length_y, target_area/length_x/length_y])
                 break
             
-        # iteration fin
+            # iteration fin
 
-    lambda_f = lambda_0 
+        lambda_f = lambda_0 
+            
+        # velocity calculation
+        Bpt_Vel = np.zeros(nBpts)
+        for ii in range(nBpts):
+            domdist = domain_distance_vector[ii]
+            Bpt_Vel[ii] = -1.0*min( lambda_f*Sf[ii] + movelimit*Sg[ii], domdist)
         
-    # velocity calculation
-    Bpt_Vel = np.zeros(nBpts)
-    for ii in range(nBpts):
-        domdist = domain_distance_vector[ii]
-        Bpt_Vel[ii] = -1.0*min( lambda_f*Sf[ii] + movelimit*Sg[ii], domdist)
-    
-    abs_Vel = max(np.abs(Bpt_Vel))
+        abs_Vel = max(np.abs(Bpt_Vel))
 
-    if (abs_Vel > movelimit):
-        Bpt_Vel *= movelimit/abs_Vel
+        if (abs_Vel > movelimit):
+            Bpt_Vel *= movelimit/abs_Vel
 
     timestep = 1.0   
 

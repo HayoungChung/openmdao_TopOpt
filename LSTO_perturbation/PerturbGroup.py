@@ -32,7 +32,34 @@ from DiscretizeComp import VnPerturbComp # DiscretizeComp
 import scipy.sparse
 import scipy.sparse.linalg
 
-class PerturbGroup(Group):
+class StressGroup(Group):
+    def initialize(self):
+        self.options.declare('fea_solver', types=py_FEA)
+        self.options.declare('lsm_solver',types=py_LSM )
+        self.options.declare('nelx', types=int)
+        self.options.declare('nely', types=int)
+        self.options.declare('force', types= ndarray)
+        self.options.declare('movelimit', types= float)
+        self.options.declare('pval', types= float)
+    def setup(self):
+        self.lsm_solver = lsm_solver = self.options['lsm_solver']
+        self.fea_solver = fea_solver = self.options['fea_solver']
+        self.force = force = self.options['force']
+        self.nelx = nelx = self.options['nelx']
+        self.nely = nely = self.options['nely']
+        self.movelimit = movelimit = self.options['movelimit']
+        self.pval = pval = self.options['pval']
+
+
+        phi = lsm_solver.get_phi()
+        nELEM = self.nELEM = nelx*nely
+        nNODE = self.nNODE = (1+nelx) * (1+nely)
+        nDOF = nNODE * 2
+
+        (bpts_xy, areafraction, segLength) = lsm_solver.discretise()
+        nBpts = self.nBpts = bpts_xy.shape[0]
+
+class ComplianceGroup(Group):
 
     def initialize(self):
         self.options.declare('fea_solver', types=py_FEA)
