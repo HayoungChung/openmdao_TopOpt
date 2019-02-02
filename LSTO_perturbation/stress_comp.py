@@ -14,6 +14,8 @@ class VMStressComp(ExplicitComponent):
         self.options.declare('length_x', types=float, )
         self.options.declare('length_y', types=float, )
         self.options.declare('order', types=float)
+        self.options.declare('E', types=float)
+        self.options.declare('nu', types=float)
         
     def setup(self):
         fea_solver = self.fea_solver = self.options['fea_solver']
@@ -21,6 +23,9 @@ class VMStressComp(ExplicitComponent):
         nely = self.nely = self.options['nely']
         length_x = self.length_x = self.options['length_x']
         length_y = self.length_y = self.options['length_y']
+        E = self.E = self.options['E']
+        nu = self.nu = self.options['nu']
+
         order = self.order = self.options['order'] # order of quadrature
         self.nELEM = nELEM = nelx * nely
         self.nNODE = nNODE = (nelx+1) * (nely+1)
@@ -46,14 +51,22 @@ class VMStressComp(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         B0 = self.B0 
+        Cijkl = zeros((3,3))
+        Cijkl = array([[1., self.nu, 0.], [self.nu, 1., 0.], [0., 0., 0.5*(1.-self.nu)]])
+        Cijkl *= self.E/(1.-self.nu*self.nu)
+        CB0 = Cijkl.dot(B0)
+
         u = inputs['disp']
         vm, dev = self._vonMises(u)
-        J2 = vm**2
+        J2 = np.power(vm,2.)/3.
         val = zeros(self.nELEM * 8)
         for ee in range(self.nELEM):
+            if (abs(J2[ee]) < 1e-7):
+                continue
             for qqq in range(8):
-                val[8*ee + qqq] = dev[ee,0]*B0[0,qqq] + dev[ee,1]*B0[1,qqq] + dev[ee,2]*B0[2,qqq] - 1./3.*(dev[ee,0]+dev[ee,1])*(B0[0,qqq]+B0[1,qqq])
-                val[8*ee + qqq] *= sqrt(3.)/2. * sqrt(J2[ee])
+                val[8*ee + qqq] = dev[ee,0]*CB0[0,qqq] + dev[ee,1]*CB0[1,qqq] + dev[ee,2]*CB0[2,qqq] - 1./3.*(dev[ee,0]+dev[ee,1])*(CB0[0,qqq]+CB0[1,qqq])
+                val[8*ee + qqq] *= sqrt(3.)/2. / sqrt(J2[ee])
+                
         partials['vmStress','disp'] = val
 
     def _vonMises(self, u):
@@ -67,8 +80,8 @@ class VMStressComp(ExplicitComponent):
         dev[:,0] -= 1./3.*(sigma[:,0]+sigma[:,1])
         dev[:,1] -= 1./3.*(sigma[:,0]+sigma[:,1])
         J2 = multiply(dev[:,0],dev[:,0]) + multiply(dev[:,1],dev[:,1]) + multiply(dev[:,2],dev[:,2]) 
-        J2 *= 1.5
-        return (sqrt(J2), dev)
+        J2 *= 0.5
+        return (sqrt(3.*J2), dev)
 
     def _Bmatrix_centroid(self):
         # ASSUMPTION: 

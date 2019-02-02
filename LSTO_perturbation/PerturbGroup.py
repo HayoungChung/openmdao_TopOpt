@@ -42,6 +42,8 @@ class StressGroup(Group):
         self.options.declare('force', types= ndarray)
         self.options.declare('movelimit', types= float)
         self.options.declare('pval', types= float)
+        self.options.declare('E', types=float)
+        self.options.declare('nu', types=float)
     def setup(self):
         self.lsm_solver = lsm_solver = self.options['lsm_solver']
         self.fea_solver = fea_solver = self.options['fea_solver']
@@ -50,6 +52,8 @@ class StressGroup(Group):
         self.nely = nely = self.options['nely']
         self.movelimit = movelimit = self.options['movelimit']
         self.pval = pval = self.options['pval']
+        E = self.E = self.options['E']
+        nu = self.nu = self.options['nu']
 
 
         phi = lsm_solver.get_phi()
@@ -94,7 +98,7 @@ class StressGroup(Group):
         self.connect('disp_comp.disp', 'VMstress_comp.disp')
 
         # SIMP_5. VM stress
-        comp_ = VMStressComp(fea_solver=fea_solver, nelx=nelx, nely=nely, length_x=length_x, length_y=length_y, order=1.0)
+        comp_ = VMStressComp(fea_solver=fea_solver, nelx=nelx, nely=nely, length_x=length_x, length_y=length_y, order=1.0, E=E, nu=nu)
         self.add_subsystem('VMstress_comp', comp_)
         self.connect('VMstress_comp.vmStress', 'pVM_comp.x')
 

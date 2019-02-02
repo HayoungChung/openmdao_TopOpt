@@ -35,11 +35,11 @@ isCompliance = False
 isStress = True
 
 # FEM Mesh
-nelx = 4
-nely = 4
+nelx = 160
+nely = 80
 
-length_x = 4.
-length_y = 4.
+length_x = 160.
+length_y = 80.
 
 ls2fe_x = length_x/nelx
 ls2fe_y = length_y/nely
@@ -166,9 +166,6 @@ else:     # temporal fix
     hole = array([[2., 2., 1]])
     hole = append(hole,[[0., 0., 0.1], [0., 2., 0.1], [2., 0., 0.1], [2., 2., 0.1]], axis = 0)    
     lsm_solver.add_holes(locx = list(hole[:,0]), locy = list(hole[:,1]), radius = list(hole[:,2]))
-    
-
-
 lsm_solver.set_levelset()
 
 for i_HJ in range(240):
@@ -188,21 +185,21 @@ for i_HJ in range(240):
             nelx = nelx, 
             nely = nely,
             force = GF, movelimit = movelimit,
-            pval = 9.0)
+            pval = 9.0, E = E, nu = nu)
 
 
     prob = Problem(model)
 
     prob.setup()
     prob.run_once() # NOTE: this is necessary as otherwise check_partials() assumes all values as 1.0 
-    prob.check_partials(includes=['pVM_comp', 'VMstress_comp'], compact_print=True)
+    # prob.check_partials(includes=['pVM_comp', 'VMstress_comp'], compact_print=True, step=1e-6) # TODO: error is 1% VMstress_comp
     # prob.driver = pyOptSparseDriver()
     # prob.driver.options['optimizer'] = 'IPOPT'
     # prob.driver.opt_settings['linear_solver'] = 'ma27'
 
 
     # view_model(prob)
-    exit()
+    # exit()
 
     total = prob.compute_totals() # evoke solve_linear() once.
     if (isCompliance):
