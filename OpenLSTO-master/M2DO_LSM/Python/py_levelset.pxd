@@ -4,7 +4,7 @@ from libcpp cimport bool, int
 
 from py_mesh cimport Mesh
 from py_hole cimport Hole
-from py_commons cimport BoundaryPoint
+from py_commons cimport BoundaryPoint, Coord
 
 import numpy as np 
 cimport numpy as np 
@@ -26,6 +26,8 @@ cdef extern from "./../include/level_set.h":
         double computeVelocities(vector[BoundaryPoint]&, 
                         double&, const double, MersenneTwister&);
         void computeGradients()
+        void killNodes(vector[Coord]&)
+        void fixNodes(vector[Coord]&)
 
         vector[double] signedDistance
         vector[double] velocity
