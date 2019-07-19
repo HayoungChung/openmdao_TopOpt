@@ -4,5 +4,6 @@
 *.png
 *.pkl
 save/*
-*.OUT
+*.out
 *.txt
+.vscode/
