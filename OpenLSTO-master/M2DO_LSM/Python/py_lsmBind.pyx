@@ -40,8 +40,35 @@ cdef class py_LSM:
     cdef double time_step
 
     # GEOMETRY_RELATED FUNCTIONS ====================================+
-    def __cinit__(self, int nelx, int nely, int ndvs=2, double moveLimit=0.5,): #double max_area=0.4, ):
-        self.meshptr = new Mesh(nelx, nely, False)
+    def __cinit__(self, int nelx, int nely, int ndvs=2, double moveLimit=0.5, isLbeam=False): #double max_area=0.4, ):
+        cdef vector[Coord] vertical_edge
+        cdef vector[Coord] horizontal_edge
+        cdef Coord c1_tmp
+        if (isLbeam): # without this, no sharp re-entrance corner present
+            inner_corner = nelx*2./5.
+            
+            c1_tmp.x = inner_corner - 0.01
+            c1_tmp.y = inner_corner - 0.01
+            vertical_edge.push_back(c1_tmp)
+            
+            c1_tmp.x = inner_corner + 0.01
+            c1_tmp.y = nely + 0.01
+            vertical_edge.push_back(c1_tmp)
+
+            c1_tmp.x = inner_corner - 0.01
+            c1_tmp.y = inner_corner - 0.01
+            horizontal_edge.push_back(c1_tmp)
+            
+            c1_tmp.x = nelx + 0.01
+            c1_tmp.y = inner_corner + 0.01
+            horizontal_edge.push_back(c1_tmp)
+
+            self.meshptr = new Mesh(nelx, nely, False)
+            self.meshptr.createMeshBoundary(vertical_edge)
+            self.meshptr.createMeshBoundary(horizontal_edge)
+
+        else:
+            self.meshptr = new Mesh(nelx, nely, False)
         self.mesh_area = nelx * nely
         # self.max_area = max_area
         self.moveLimit = moveLimit
@@ -67,6 +94,36 @@ cdef class py_LSM:
         else:
             self.levelsetptr = new LevelSet(self.meshptr[0], self.moveLimit, 6, False)
         self.levelsetptr.reinitialise()
+
+    def kill_nodes(self, double xlo, double xhi, double ylo, double yhi):
+        cdef Coord point_lo
+        cdef Coord point_hi
+        point_lo.x = xlo
+        point_lo.y = ylo
+        point_hi.x = xhi
+        point_hi.y = yhi
+
+        cdef vector[Coord] vec_in
+        vec_in.push_back(point_lo)
+        vec_in.push_back(point_hi)
+
+        self.levelsetptr.killNodes(vec_in)
+        self.levelsetptr.reinitialise()
+
+    def fix_nodes(self, double xlo, double xhi, double ylo, double yhi):
+        cdef Coord point_lo
+        cdef Coord point_hi
+        point_lo.x = xlo
+        point_lo.y = ylo
+        point_hi.x = xhi
+        point_hi.y = yhi
+
+        cdef vector[Coord] vec_in
+        vec_in.push_back(point_lo)
+        vec_in.push_back(point_hi)
+
+        self.levelsetptr.fixNodes(vec_in)
+        # self.levelsetptr.reinitialise()
 
     def discretise(self):
         self.boundaryptr = new Boundary(self.levelsetptr[0])

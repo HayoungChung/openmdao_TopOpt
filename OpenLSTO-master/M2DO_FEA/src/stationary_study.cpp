@@ -64,7 +64,7 @@ void StationaryStudy :: AssembleF (PointValues & point_values, bool time_it) {
 }
 
 void StationaryStudy::ComputeStress(std::vector<double> u_input, int order)
-{
+{	
 	mesh.ComputeCentroids();
 	if (order > 1)
 	{
@@ -95,6 +95,7 @@ void StationaryStudy::ComputeStress(std::vector<double> u_input, int order)
 	// Quadrature object.
     GaussianQuadrature  quadrature (spacedim, order) ;
 	// FUNCTION BODY
+	gpts_stress.resize(0);
 
     // Computing strain-displacement matrices.
     for (int j = 0; j < ngpts; j++)

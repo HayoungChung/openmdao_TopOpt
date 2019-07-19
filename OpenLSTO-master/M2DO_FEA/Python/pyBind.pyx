@@ -126,7 +126,15 @@ cdef class py_FEA:
     def set_boundary(self, np.ndarray coord, np.ndarray tol): 
         ''' CLAMPED ONLY '''
         # cdef vector[int] fixed_dof = self.__get_dof(coord,tol)
-        fixed_dof = self.__get_dof(coord,tol)
+        fixed_dof = np.array([])
+        pycoord = np.array(coord)
+        pytol = np.array(tol)
+        fixed_dof = []
+        for mm in range(pycoord.shape[0]):
+            fixed_dof_tmp =self.__get_dof(pycoord[mm,:], pytol[mm,:])
+            fixed_dof.extend(fixed_dof_tmp)
+            #np.append(fixed_dof, self.__get_dof(pycoord[mm,:], pytol[mm,:]))
+         
         # print("# of fixed_dof: %d" %len(fixed_dof))
 
         self.diriptr = new HomogeneousDirichletBoundaryConditions(fixed_dof, self.nDOF)
