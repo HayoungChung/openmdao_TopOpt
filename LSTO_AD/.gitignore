@@ -7,12 +7,12 @@ mprofile*
 *.ipynb
 *.yaml
 *.tar 
-./save*/
+save*/
 *.mprofile
 *.json
-./.vscode/
+../.vscode/
 *.lprof
-./myprofile*/
+myprofile*
 *.txt
-./99.*/
+99.*/
 tags
