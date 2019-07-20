@@ -199,7 +199,6 @@ def main(itr):
         # checking partials
         #prob.check_partials(includes=['states_comp','disp_comp'], compact_print=True, step=1e-6)
 
-        # FIXME: temperature check
         #np.savetxt("temperature_therm.txt", prob['disp_comp.disp'])
         #exit()
         total = prob.compute_totals() # evoke solve_linear() once.
@@ -242,6 +241,8 @@ def main(itr):
         plt.axis("equal")
         plt.colorbar()
         plt.savefig('sensivity_therm.png')
+
+        view_model(prob)
 
         exit()
 
