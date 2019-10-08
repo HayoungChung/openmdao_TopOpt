@@ -63,6 +63,119 @@ void StationaryStudy :: AssembleF (PointValues & point_values, bool time_it) {
 
 }
 
+void StationaryStudy::ComputeStress(std::vector<double> u_input, int order)
+{	
+	mesh.ComputeCentroids();
+	if (order > 1)
+	{
+		cout << "error: currently only a superconvergnet point (centroid) is used. otherwise halted. \n";
+		exit(0);
+	}
+	int ngpts = pow(order, 2);
+	int spacedim = mesh.spacedim;
+	int dim = mesh.spacedim;
+	// Scalars and vectors
+	int number_of_elements = mesh.solid_elements.size(); // Total number of elements
+	
+
+	vector<double> eta(spacedim,0), eta_count(spacedim,0); // Vector of gauss points
+	//VectorXd element_displacements = VectorXd::Zero(pow(2,spacedim)*spacedim); // Vector of element displacements
+  Vector<double,-1> element_displacements(pow(2,spacedim)*spacedim);
+  element_displacements.fill(0.0);
+	vector<int> dof; // Vector with dofs
+
+	// Stress*strain matrices.
+    vector< Matrix<double,-1,-1> > B;
+    B.resize(ngpts);
+    Vector<double,-1> Bu(pow(spacedim,spacedim));
+    Bu.fill(0.0);
+    Matrix<double,-1,-1> C = mesh.solid_materials[0].C;
+    double stress_strain = 0.0;
+
+	// Quadrature object.
+    GaussianQuadrature  quadrature (spacedim, order) ;
+	// FUNCTION BODY
+	gpts_stress.resize(0);
+
+    // Computing strain-displacement matrices.
+    for (int j = 0; j < ngpts; j++)
+    {
+        // Selecting Gauss points.
+        for (int k = 0 ; k < spacedim; k++)
+        {
+            eta[k]  = quadrature.eta[eta_count[k]];
+        }
+
+        // Strain-displacement matrix at Gauss point.
+        B[j] = mesh.solid_elements[0].B(eta);
+
+        // Update eta counter (to select next group of Gauss points).
+        eta_count = quadrature.UpdateEtaCounter(eta_count);
+    }
+    
+	// For each element i
+		Stresses_point stress_place;
+
+    for (int i = 0; i < number_of_elements; i++)
+    { 
+				stress_place.loc.resize(dim,0.0);
+				stress_place.stress.resize(3,0.0);
+				for (int qq = 0 ; qq < dim; qq ++)
+				{
+					stress_place.loc[qq] = mesh.solid_elements[i].centroid[qq];
+				}
+        // If the element is too soft (very small area fraction)
+        if (mesh.solid_elements[i].area_fraction <= 0.1)
+        {
+        	// For each gauss point
+        	for (int j = 0; j < ngpts; j++)
+        	{
+        		// Sensitivity is not computed and set as zero
+						stress_place.stress[0] = 0.0;
+							stress_place.stress[1] = 0.0;
+							stress_place.stress[2] = 0.0;
+							gpts_stress.push_back(stress_place);
+        	}    
+        }
+        // If the element has significant area fraction
+        else
+        {
+        	// For each Gauss point
+        	for (int j = 0; j < ngpts; j++)
+        	{
+				// Element dofs
+                dof = mesh.solid_elements[i].dof ;
+
+                // Selecting element displacements.
+				for (int k = 0 ; k < dof.size() ; k++)
+				{
+					// element_displacements(k) = u[dof[k]] ;
+					element_displacements(k) = u_input[dof[k]] ;
+				}
+				// Strain.
+                //Bu = B[j]*element_displacements;
+                Bu = B[j].dot(element_displacements);
+								// element_displacements.print();
+								// cout << "------" <<endl;
+
+								// Bu.print();
+								// cout << "------" <<endl;
+                //stress_strain = Bu.transpose()*C*Bu;
+                Vector<double,-1> CBu;
+                CBu = C.dot(Bu);
+								
+
+								// CBu.print();
+								stress_place.stress[0] = CBu.data[0];
+								stress_place.stress[1] = CBu.data[3];
+								stress_place.stress[2] = CBu.data[2];
+								gpts_stress.push_back(stress_place);
+        	}
+        }
+    }
+
+}
+
 
 // this function multiplies the sparse matrix with a vector
 void StationaryStudy ::mat_vec_mult( std::vector<Triplet_Sparse> &K, std::vector<double> &v_in, std::vector<double> &v_out )

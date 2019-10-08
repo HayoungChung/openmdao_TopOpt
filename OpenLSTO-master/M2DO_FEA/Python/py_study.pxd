@@ -18,6 +18,9 @@ cdef extern from "../include/stationary_study.h" namespace "M2DO_FEA":
         void AddBoundaryConditions(HomogeneousDirichletBoundaryConditions)
         void AssembleF(PointValues &, bool)
         void Assemble_K_With_Area_Fractions_Sparse(bool)
+        void ComputeStress(vector[double])
+
+        vector[Stresses_point] gpts_stress
 
         vector[Triplet_Sparse] K_sparse
         
@@ -31,9 +34,13 @@ cdef extern from "../include/stationary_study.h" namespace "M2DO_FEA":
         vector[double] u
 
         HomogeneousDirichletBoundaryConditions homogeneous_dirichlet_boundary_conditions
-
-
+    
     cdef cppclass Triplet_Sparse:
         int row
         int col
         double val
+
+    cdef cppclass Stresses_point:
+        vector[double] loc
+        vector[double] stress
+

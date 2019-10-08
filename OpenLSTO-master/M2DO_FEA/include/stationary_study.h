@@ -44,9 +44,15 @@ namespace M2DO_FEA {
 			// Triplate structure to store the sparse stiffness matrix
 			struct Triplet_Sparse
 			{
-			  int row;
-			  int col;
-			  double val;
+				int row;
+				int col;
+				double val;
+			};
+
+			struct Stresses_point
+			{
+				vector<double> loc;
+				vector<double> stress; // voigt
 			};
 
 			// this function multiplies the sparse matrix with a vector
@@ -86,6 +92,13 @@ namespace M2DO_FEA {
 			void AssembleF (PointValues &, bool time_it) ;
 			void Assemble_K_With_Area_Fractions_Sparse (bool time_it) ;
 			void Solve_With_CG (bool time_it, double cg_tolerence, std::vector<double> &u_guess);// Solves [K_reduced] * {u_reduced} = {f_reduced}.
+			
+			/*
+				POST-Process
+			*/
+			void ComputeStress(std::vector<double> u,int order = 1);
+			vector<Stresses_point> gpts_stress;
+			vector<Stresses_point> nodes_stress;
 
 
 

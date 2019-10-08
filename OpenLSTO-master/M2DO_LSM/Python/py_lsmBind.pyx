@@ -2,6 +2,8 @@ from libcpp.vector cimport vector
 from libcpp cimport bool, int
 from libcpp.string cimport string
 from cpython cimport array
+from libc.stdlib cimport malloc, free
+
 
 import numpy as np
 cimport numpy as np
@@ -40,8 +42,35 @@ cdef class py_LSM:
     cdef double time_step
 
     # GEOMETRY_RELATED FUNCTIONS ====================================+
-    def __cinit__(self, int nelx, int nely, int ndvs=2, double moveLimit=0.5,): #double max_area=0.4, ):
-        self.meshptr = new Mesh(nelx, nely, False)
+    def __cinit__(self, int nelx, int nely, int ndvs=2, double moveLimit=0.5, isLbeam=False): #double max_area=0.4, ):
+        cdef vector[Coord] vertical_edge
+        cdef vector[Coord] horizontal_edge
+        cdef Coord c1_tmp
+        if (isLbeam): # without this, no sharp re-entrance corner present
+            inner_corner = nelx*2./5.
+            
+            c1_tmp.x = inner_corner - 0.01
+            c1_tmp.y = inner_corner - 0.01
+            vertical_edge.push_back(c1_tmp)
+            
+            c1_tmp.x = inner_corner + 0.01
+            c1_tmp.y = nely + 0.01
+            vertical_edge.push_back(c1_tmp)
+
+            c1_tmp.x = inner_corner - 0.01
+            c1_tmp.y = inner_corner - 0.01
+            horizontal_edge.push_back(c1_tmp)
+            
+            c1_tmp.x = nelx + 0.01
+            c1_tmp.y = inner_corner + 0.01
+            horizontal_edge.push_back(c1_tmp)
+
+            self.meshptr = new Mesh(nelx, nely, False)
+            self.meshptr.createMeshBoundary(vertical_edge)
+            self.meshptr.createMeshBoundary(horizontal_edge)
+
+        else:
+            self.meshptr = new Mesh(nelx, nely, False)
         self.mesh_area = nelx * nely
         # self.max_area = max_area
         self.moveLimit = moveLimit
@@ -67,6 +96,36 @@ cdef class py_LSM:
         else:
             self.levelsetptr = new LevelSet(self.meshptr[0], self.moveLimit, 6, False)
         self.levelsetptr.reinitialise()
+
+    def kill_nodes(self, double xlo, double xhi, double ylo, double yhi):
+        cdef Coord point_lo
+        cdef Coord point_hi
+        point_lo.x = xlo
+        point_lo.y = ylo
+        point_hi.x = xhi
+        point_hi.y = yhi
+
+        cdef vector[Coord] vec_in
+        vec_in.push_back(point_lo)
+        vec_in.push_back(point_hi)
+
+        self.levelsetptr.killNodes(vec_in)
+        self.levelsetptr.reinitialise()
+
+    def fix_nodes(self, double xlo, double xhi, double ylo, double yhi):
+        cdef Coord point_lo
+        cdef Coord point_hi
+        point_lo.x = xlo
+        point_lo.y = ylo
+        point_hi.x = xhi
+        point_hi.y = yhi
+
+        cdef vector[Coord] vec_in
+        vec_in.push_back(point_lo)
+        vec_in.push_back(point_hi)
+
+        self.levelsetptr.fixNodes(vec_in)
+        # self.levelsetptr.reinitialise()
 
     def discretise(self):
         self.boundaryptr = new Boundary(self.levelsetptr[0])
@@ -373,14 +432,20 @@ cdef class py_LSM:
             self.boundaryptr.points[bb].velocity = bptsVel[bb]
         
     def advect(self, np.ndarray[double] bptsVel, double time_step):
-        cdef MersenneTwister rng
+        # cdef MersenneTwister rng
         self.set_boundaryVelocities(bptsVel)
         self.levelsetptr.computeVelocities(self.boundaryptr.points) #, time_step, 0, rng)
         self.levelsetptr.computeGradients()
         self.levelsetptr.update(time_step)
+        
+
+    def freeing_pointers(self):
+        free(self.boundaryptr)
+        self.boundaryptr = NULL
+        # del self.boundaryptr # free boundary pointer (otherwise new boundaryptr is created at every iteration)
 
     def advect_woWENO(self, np.ndarray[double] bptsVel, double time_step):
-        cdef MersenneTwister rng
+        # cdef MersenneTwister rng
         self.set_boundaryVelocities(bptsVel)
         self.levelsetptr.computeVelocities(self.boundaryptr.points) #, time_step, 0, rng)
         self.levelsetptr.computeGradients()
@@ -389,22 +454,55 @@ cdef class py_LSM:
     def reinitialise(self):
         self.levelsetptr.reinitialise()        
 
+    def dealloc(self):
+        # del self.meshptr
+        # del self.levelsetptr
+        # # del self.boundaryptr
+        # del self.optimiseptr
+        # del self.ioptr
+        free(self.meshptr)
+        self.meshptr = NULL
+        free(self.levelsetptr)
+        self.levelsetptr = NULL
+        # free(self.boundaryptr)
+        # self.boundaryptr = NULL
+        free(self.optimiseptr)
+        self.optimiseptr = NULL
+        free(self.ioptr)
+        self.ioptr = NULL
+
     def __dealloc__(self):
-        del self.meshptr
-        del self.levelsetptr
-        del self.boundaryptr
-        del self.optimiseptr
-        del self.ioptr
+        # del self.meshptr
+        # del self.levelsetptr
+        # # del self.boundaryptr
+        # del self.optimiseptr
+        # del self.ioptr
+
+        # free(self.boundaryptr)
+        # self.boundaryptr = NULL
+        free(self.meshptr)
+        self.meshptr = NULL
+        free(self.levelsetptr)
+        self.levelsetptr = NULL
+        free(self.optimiseptr)
+        self.optimiseptr = NULL
+        free(self.ioptr)
+        self.ioptr = NULL
+        
     ''' belows are gateway functions '''
 
     def get_phi(self):
         return self.levelsetptr.signedDistance 
 
+    def set_phi_re(self, list phi0):
+        for ii in range(len(phi0)):
+            self.levelsetptr.signedDistance[ii] = phi0[ii]
+
     def set_phi(self, int index, double value, bool isReplace = True):
         if (isReplace): 
-            self.levelsetptr.signedDistance[index] = value;
+            self.levelsetptr.signedDistance[index] = value
         else: #addition
-            self.levelsetptr.signedDistance[index] += value;
+            self.levelsetptr.signedDistance[index] += value
     
     def get_boundaryVelocity(self):
         self.boundary_velocities.resize(self.nBpts, 0.0)
