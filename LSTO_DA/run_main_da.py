@@ -1,7 +1,7 @@
 # A cleaned version of run.
 # no subtantial change, but make the routine more readable
 
-from openmdao.api import Group, Problem, view_model, pyOptSparseDriver
+from openmdao.api import Group, Problem, view_model, pyOptSparseDriver, ScipyOptimizeDriver
 from openmdao.api import IndepVarComp, ExplicitComponent, ImplicitComponent
 from post.plot import get_mesh, plot_solution, plot_contour
 
@@ -15,14 +15,16 @@ from py_lsmBind import py_LSM
 
 # imports perturbation method (aka discrete adjoint)
 from groups.PerturbGroup import *
+from groups.lsm2d_SLP_Group_openlsto import LSM2D_slpGroup
 
 # imports solvers for suboptimization
 # TODO: needs to be replaced with OpenMDAO optimizer
-from suboptim.solvers import SolversA
+from suboptim.solvers import Solvers
+import scipy.optimize as sp_optim
 
 objectives = {0: "compliance", 1: "stress",
               2: "conduction", 3: "coupled_heat"}
-saveFolder = "./save_coupleHeat1/"
+saveFolder = "./save/"
 import os
 try:
     os.mkdir(saveFolder)
@@ -86,12 +88,31 @@ def main(maxiter):
     fea_solver.set_material(E=E, nu=nu, rho=1.0)
 
     # Boundary Conditions =====================================
-    coord_e = np.array([[0., 0.], [length_x, 0.]])
-    tol_e = np.array([[1e-3, 1e3], [1e-3, 1e+3]])
-    fea_solver.set_boundary(coord=coord_e, tol=tol_e)
+    if 1:
+        coord_e = np.array([[0., 0.], [length_x, 0.]])
+        tol_e = np.array([[1e-3, 1e3], [1e-3, 1e+3]])
+        fea_solver.set_boundary(coord=coord_e, tol=tol_e)
 
-    BCid_e = fea_solver.get_boundary()
-    nDOF_e_wLag = nDOF_e + len(BCid_e)  # elasticity DOF
+        BCid_e = fea_solver.get_boundary()
+        nDOF_e_wLag = nDOF_e + len(BCid_e)  # elasticity DOF
+        
+        coord = np.array([length_x*0.5, 0.0])  # length_y])
+        tol = np.array([4.1, 1e-3])
+        GF_e_ = fea_solver.set_force(coord=coord, tol=tol, direction=1, f=-f)
+        GF_e = np.zeros(nDOF_e_wLag)
+        GF_e[:nDOF_e] = GF_e_
+    else: # cantilever bending
+        coord_e = np.array([[0,0]])
+        tol_e = np.array([[1e-3,1e10]])
+        fea_solver.set_boundary(coord = coord_e,tol = tol_e)
+        BCid_e = fea_solver.get_boundary()
+        nDOF_e_wLag = nDOF_e + len(BCid_e)  # elasticity DOF
+
+        coord = np.array([length_x,length_y/2])
+        tol = np.array([1,1]) 
+        GF_e_ = fea_solver.set_force(coord = coord,tol = tol, direction = 1, f = -1.0)
+        GF_e = np.zeros(nDOF_e_wLag)
+        GF_e[:nDOF_e] = GF_e_
 
     xlo = np.array(range(0, nNODE, num_nodes_x))
     xhi = np.array(range(nelx, nNODE, num_nodes_x))
@@ -106,24 +127,18 @@ def main(maxiter):
     BCid_t = np.array(fixID, dtype=int)
     nDOF_t_wLag = nDOF_t + len(BCid_t)  # temperature DOF (zero temp)
 
-    coord = np.array([length_x*0.5, 0.0])  # length_y])
-    tol = np.array([4.1, 1e-3])
-    GF_e_ = fea_solver.set_force(coord=coord, tol=tol, direction=1, f=-f)
-    GF_e = np.zeros(nDOF_e_wLag)
-    GF_e[:nDOF_e] = GF_e_
-
     GF_t = np.zeros(nDOF_t_wLag)  # FORCE_HEAT (NB: Q matrix)
     # for ee in range(70, 91):  # between element 70 to 91
     #     GF_t[elem[ee]] += 10.  # heat generation
     # GF_t /= np.sum(GF_t)
     GF_t[nDOF_t:nDOF_t+len(fixID_d)+1] = 100.
-    # GF_t[:] = 0.0
+        # GF_t[:] = 0.0
 
 
     ########################################################
     ################# 		LSM 		####################
     ########################################################
-    movelimit = 0.1
+    movelimit = 0.5
 
     # Declare Level-set object
     lsm_solver = py_LSM(nelx=nelx, nely=nely, moveLimit=movelimit)
@@ -247,22 +262,144 @@ def main(maxiter):
         Sf = np.divide(Cf, seglength)
         Sg = np.divide(Cg, seglength)
 
-        # confine Sg
+        # bracketing Sf and Sg
         Sg[Sg < - 1.5] = -1.5
         Cg = np.multiply(Sg, seglength)
 
+        Sf[Sf*0.5 > movelimit] = movelimit/0.5
+        Sf[Sf*0.5 < -movelimit] = -movelimit/0.5
+        Cf = np.multiply(Sf, seglength)
         ########################################################
         ############## 		suboptimize 		################
         ########################################################
-        suboptim = Solvers(bpts_xy=bpts_xy, Sf=Sf, Sg=Sg, Cf=Cf, Cg=Cg, length_x=length_x,
-                           length_y=length_y, areafraction=areafraction, movelimit=movelimit)
-        # suboptimization
-        if 1:  # simplex
-            Bpt_Vel = suboptim.simplex(isprint=False)
-        else:  # bisection..
-            Bpt_Vel = suboptim.bisection(isprint=False)
+        if 0: 
+            suboptim = Solvers(bpts_xy=bpts_xy, Sf=Sf, Sg=Sg, Cf=Cf, Cg=Cg, length_x=length_x,
+                            length_y=length_y, areafraction=areafraction, movelimit=movelimit)
+            # suboptimization
+            if 1:  # simplex
+                Bpt_Vel = suboptim.simplex(isprint=False)
+            else:  # bisection..
+                Bpt_Vel = suboptim.bisection(isprint=False)
+            timestep = 1.0
 
-        timestep = 1.0
+            # save - wip =====================================
+            plt.figure(1)
+            plt.clf()
+            plt.subplot(2,1,1)
+            plt.scatter(bpts_xy[:,0], bpts_xy[:,1], 10, Bpt_Vel) 
+            plt.subplot(2,1,2)
+            plt.plot(Bpt_Vel)
+            plt.savefig("/home/hayoung/Desktop/vel.png")
+            # exit()
+            # save - wip =====================================
+
+        elif 1: # branch: perturb-suboptim
+            bpts_sens = np.zeros((nBpts,2))
+            # issue: scaling problem
+            # 
+            bpts_sens[:,0] = Sf
+            bpts_sens[:,1] = Sg
+
+            lsm_solver.set_BptsSens(bpts_sens)
+            scales = lsm_solver.get_scale_factors()
+            (lb2,ub2) = lsm_solver.get_Lambda_Limits()
+            constraint_distance = (0.4 * nelx * nely) - areafraction.sum()
+
+            model = LSM2D_slpGroup(lsm_solver = lsm_solver, num_bpts = nBpts, ub = ub2, lb = lb2,
+                Sf = bpts_sens[:,0], Sg = bpts_sens[:,1], constraintDistance = constraint_distance)
+
+            subprob = Problem(model)
+            subprob.setup()
+
+            subprob.driver = ScipyOptimizeDriver()
+            subprob.driver.options['optimizer'] = 'SLSQP'
+            subprob.driver.options['disp'] = True
+            subprob.driver.options['tol'] = 1e-10
+
+            subprob.run_driver()
+            lambdas = subprob['inputs_comp.lambdas']
+            displacements_ = subprob['displacement_comp.displacements']
+
+            displacements_[displacements_ > movelimit] = movelimit
+            displacements_[displacements_ < -movelimit] = -movelimit
+            timestep =  1.0 #abs(lambdas[0]*scales[0])
+
+            Bpt_Vel = displacements_ / timestep
+            # print(timestep)
+            del subprob
+
+            # save - wip =====================================
+            plt.figure(1)
+            plt.clf()
+            plt.subplot(2,1,1)
+            plt.scatter(bpts_xy[:,0], bpts_xy[:,1], 10, Bpt_Vel) 
+            plt.subplot(2,1,2)
+            plt.plot(Bpt_Vel)
+            plt.savefig("/home/hayoung/Desktop/vel.png")
+            # exit()
+            # save - wip =====================================
+
+        else: # branch: perturb-suboptim
+            bpts_sens = np.zeros((nBpts,2))
+            # issue: scaling problem
+            # 
+            bpts_sens[:,0] = Sf
+            bpts_sens[:,1] = Sg
+
+            # save - wip =====================================
+            plt.figure(1)
+            plt.clf()
+            plt.subplot(2,1,1)
+            plt.scatter(bpts_xy[:,0], bpts_xy[:,1], 10, bpts_sens[:,0])
+            plt.subplot(2,1,2)
+            plt.plot(bpts_sens[:,0])
+            plt.savefig("/home/hayoung/Desktop/main_sens.png")
+            # save - wip =====================================
+
+            lsm_solver.set_BptsSens(bpts_sens)
+            scales = lsm_solver.get_scale_factors()
+            (lb2,ub2) = lsm_solver.get_Lambda_Limits()
+
+            constraint_distance = (0.4 * nelx * nely) - areafraction.sum()
+            constraintDistance = np.array([constraint_distance])
+            scaled_constraintDist = lsm_solver.compute_scaledConstraintDistance(constraintDistance)
+
+            def objF_nocallback(x):
+                displacement = lsm_solver.compute_displacement(x)
+                displacement_np = np.asarray(displacement)
+                return lsm_solver.compute_delF(displacement_np)
+
+            def conF_nocallback(x):
+                displacement = lsm_solver.compute_displacement(x)
+                displacement_np = np.asarray(displacement)
+                return lsm_solver.compute_delG(displacement_np, scaled_constraintDist, 1)
+
+            cons = ({'type': 'eq', 'fun': lambda x: conF_nocallback(x)})
+            res = sp_optim.minimize(objF_nocallback, np.zeros(2), method='SLSQP', options={'disp': True},
+                                    bounds=((lb2[0], ub2[0]), (lb2[1], ub2[1])),
+                                    constraints=cons)
+
+            lambdas = res.x
+            displacements_ = lsm_solver.compute_unscaledDisplacement(lambdas)
+            displacements_[displacements_ > movelimit] = movelimit
+            displacements_[displacements_ < -movelimit] = -movelimit
+            timestep =  1.0 #abs(lambdas[0]*scales[0])
+
+            # save - wip =====================================
+            np.savetxt("/home/hayoung/Desktop/disp.txt", bpts_sens)
+            plt.figure(1)
+            plt.clf()
+            plt.subplot(2,1,1)
+            plt.scatter(bpts_xy[:,0], bpts_xy[:,1], 10, displacements_) 
+            plt.subplot(2,1,2)
+            plt.plot(displacements_)
+            plt.savefig("/home/hayoung/Desktop/disp.png")
+            # exit()
+            # save - wip =====================================
+            Bpt_Vel = displacements_ / timestep
+            # scaling 
+            # Bpt_Vel = Bpt_Vel#/np.max(np.abs(Bpt_Vel))
+
         lsm_solver.advect(Bpt_Vel, timestep)
         lsm_solver.reinitialise()
 
@@ -281,17 +418,17 @@ def main(maxiter):
             plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 10)
             plt.axis("equal")
             plt.savefig(saveFolder + "figs/bpts_%d.png" % i_HJ)
+            if obj_flag == 3:
+                plt.figure(2)
+                plt.clf()
+                [xx, yy] = np.meshgrid(range(0,161),range(0,81))
+                plt.contourf(xx, yy,np.reshape(u, [81,161]))
+                plt.colorbar()
+                plt.axis("equal")
+                plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 5)
+                plt.savefig(saveFolder + "figs/temp_%d.png" % i_HJ)
 
-            plt.figure(2)
-            plt.clf()
-            [xx, yy] = np.meshgrid(range(0,161),range(0,81))
-            plt.contourf(xx, yy,np.reshape(u, [81,161]))
-            plt.colorbar()
-            plt.axis("equal")
-            plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 5)
-            plt.savefig(saveFolder + "figs/temp_%d.png" % i_HJ)
-
-        print([compliance, area])
+        # print([compliance[0], area])
         if (objectives[obj_flag] == "compliance"):
             compliance = prob['compliance_comp.compliance']
             print (compliance, area)
