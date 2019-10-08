@@ -2,6 +2,8 @@ from libcpp.vector cimport vector
 from libcpp cimport bool, int
 from libcpp.string cimport string
 from cpython cimport array
+from libc.stdlib cimport malloc, free
+
 
 import numpy as np
 cimport numpy as np
@@ -430,14 +432,20 @@ cdef class py_LSM:
             self.boundaryptr.points[bb].velocity = bptsVel[bb]
         
     def advect(self, np.ndarray[double] bptsVel, double time_step):
-        cdef MersenneTwister rng
+        # cdef MersenneTwister rng
         self.set_boundaryVelocities(bptsVel)
         self.levelsetptr.computeVelocities(self.boundaryptr.points) #, time_step, 0, rng)
         self.levelsetptr.computeGradients()
         self.levelsetptr.update(time_step)
+        
+
+    def freeing_pointers(self):
+        free(self.boundaryptr)
+        self.boundaryptr = NULL
+        # del self.boundaryptr # free boundary pointer (otherwise new boundaryptr is created at every iteration)
 
     def advect_woWENO(self, np.ndarray[double] bptsVel, double time_step):
-        cdef MersenneTwister rng
+        # cdef MersenneTwister rng
         self.set_boundaryVelocities(bptsVel)
         self.levelsetptr.computeVelocities(self.boundaryptr.points) #, time_step, 0, rng)
         self.levelsetptr.computeGradients()
@@ -446,16 +454,49 @@ cdef class py_LSM:
     def reinitialise(self):
         self.levelsetptr.reinitialise()        
 
+    def dealloc(self):
+        # del self.meshptr
+        # del self.levelsetptr
+        # # del self.boundaryptr
+        # del self.optimiseptr
+        # del self.ioptr
+        free(self.meshptr)
+        self.meshptr = NULL
+        free(self.levelsetptr)
+        self.levelsetptr = NULL
+        # free(self.boundaryptr)
+        # self.boundaryptr = NULL
+        free(self.optimiseptr)
+        self.optimiseptr = NULL
+        free(self.ioptr)
+        self.ioptr = NULL
+
     def __dealloc__(self):
-        del self.meshptr
-        del self.levelsetptr
-        del self.boundaryptr
-        del self.optimiseptr
-        del self.ioptr
+        # del self.meshptr
+        # del self.levelsetptr
+        # # del self.boundaryptr
+        # del self.optimiseptr
+        # del self.ioptr
+
+        # free(self.boundaryptr)
+        # self.boundaryptr = NULL
+        free(self.meshptr)
+        self.meshptr = NULL
+        free(self.levelsetptr)
+        self.levelsetptr = NULL
+        free(self.optimiseptr)
+        self.optimiseptr = NULL
+        free(self.ioptr)
+        self.ioptr = NULL
+        
     ''' belows are gateway functions '''
 
     def get_phi(self):
         return self.levelsetptr.signedDistance 
+
+    def set_phi_re(self, list phi0):
+        for ii in range(len(phi0)):
+            self.levelsetptr.signedDistance[ii] = phi0[ii]
 
     def set_phi(self, int index, double value, bool isReplace = True):
         if (isReplace): 

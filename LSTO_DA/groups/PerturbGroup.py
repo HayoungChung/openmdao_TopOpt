@@ -238,7 +238,6 @@ class HeatCouplingGroup(Group):
         comp_ = COND_ComplianceComp(num_nodes_x = nelx+1, num_nodes_y = nely+1)
         self.add_subsystem('compliance_t_comp', comp_)
         self.connect('compliance_t_comp.compliance', 'objective_comp.x1')
-        # self.add_objective('compliance_t_comp.compliance') # FIXME: sensivity is fairly estimated when the objective is this. refer sensitivity.png
 
         # SIMP_5.1 compliance
         comp_ = SIMP_ComplianceComp(num_nodes_x = nelx+1, num_nodes_y = nely+1)
@@ -249,7 +248,7 @@ class HeatCouplingGroup(Group):
         # 6. compliance
         comp_ = SumComp(w=w)
         self.add_subsystem('objective_comp', comp_)
-        self.add_objective('objective_comp.y') #FIXME: sensitivity fails here
+        self.add_objective('objective_comp.y') 
 
         # 6. total area
         comp_ = SIMP_WeightComp(num=nELEM)
@@ -347,6 +346,7 @@ class ComplianceGroup(Group):
         self.options.declare('nely', types=int)
         self.options.declare('force', types= np.ndarray)
         self.options.declare('movelimit', types= float)
+        self.options.declare('BCid', types = np.ndarray)
 
     def setup(self):
         self.lsm_solver = lsm_solver = self.options['lsm_solver']
@@ -355,6 +355,8 @@ class ComplianceGroup(Group):
         self.nelx = nelx = self.options['nelx']
         self.nely = nely = self.options['nely']
         self.movelimit = movelimit = self.options['movelimit']
+        self.BCid = BCid = self.options['BCid']
+        self.nBCid = nBCid = BCid.shape[0]
 
         phi = lsm_solver.get_phi()
         nELEM = self.nELEM = nelx*nely
@@ -418,12 +420,12 @@ class ComplianceGroup(Group):
         self.connect('states_comp.states', 'disp_comp.states')
 
         # SIMP_4. extract out lagrange multipliers
-        comp_ = SIMP_DispComp(num_nodes_x = nelx+1, num_nodes_y = nely+1, nBCid = 2*(nely+1))
+        comp_ = SIMP_DispComp(num_nodes_x = nelx+1, num_nodes_y = nely+1, nBCid = self.nBCid)
 
         self.add_subsystem('disp_comp', comp_)
         self.connect('disp_comp.disp', 'compliance_comp.disp')
 
-        comp_ = SIMP_DispComp(num_nodes_x = nelx+1, num_nodes_y = nely+1, nBCid = 2*(nely+1))
+        comp_ = SIMP_DispComp(num_nodes_x = nelx+1, num_nodes_y = nely+1, nBCid = self.nBCid)
 
         self.add_subsystem('GF_comp', comp_)
         self.connect('GF_comp.disp', 'compliance_comp.forces')

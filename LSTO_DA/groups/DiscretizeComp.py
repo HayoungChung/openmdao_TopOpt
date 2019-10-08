@@ -134,10 +134,12 @@ class VnPerturbComp(ExplicitComponent):
                         val = append(val, delta_x / self.seglength[bbb] / pertb)
 
                     count_pert += 1
+            del lsm_pert
         
         return (row, col, val)
 
 
+@profile
 class DiscretizeComp(ExplicitComponent):
     # perturbing boundary... this is based on the mistake
     def initialize(self):
@@ -168,6 +170,7 @@ class DiscretizeComp(ExplicitComponent):
         print(self.cnt_tmp)
         self.cnt_tmp += 1
         (bpts_xy, areafraction, seglength) = self.lsm_solver.discretise()
+        self.areafraction = areafraction
         self.seglength = seglength
         outputs['density'] = areafraction
 
@@ -262,6 +265,8 @@ class DiscretizeComp(ExplicitComponent):
                     global_index = (nelx)*global_y + global_x
 
                     delta_x = min(areafraction_pert0[count_pert] - areafraction_pert1[count_pert], 0.8*pertb)
+                    if self.areafraction[global_index] <= 1e-3:
+                        continue
 
                     if (delta_x > 1e-3 * pertb):
                         row = append(row, global_index)
@@ -269,5 +274,7 @@ class DiscretizeComp(ExplicitComponent):
                         val = append(val, delta_x / self.seglength[bbb] / pertb)
 
                     count_pert += 1
+
+            del lsm_pert
         
         return (row, col, val)

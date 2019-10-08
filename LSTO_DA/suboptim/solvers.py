@@ -34,13 +34,14 @@ class Solvers(object):
         nBpts = self.nBpts
 
         percent_area = 0.5
+        target_total = 0.5
         target_area0 = sum(areafraction)
         target_area = target_area0
 
         # target area
         for ii in range(nBpts):
             target_area += Cg[ii] * percent_area * (movelimit)
-        target_area = max(0.5 * length_x * length_y, target_area)
+        target_area = max(target_total * length_x * length_y, target_area)
 
         if (isprint):
             np.savetxt("areas_constraint.txt", np.array([target_area0, target_area]))
@@ -114,13 +115,14 @@ class Solvers(object):
         nBpts = self.nBpts
 
         percent_area = 0.5
+        target_total = 0.5
         target_area = sum(areafraction)
 
         # target area
         for ii in range(nBpts):
             target_area += Cg[ii] * percent_area * (-movelimit)
 
-        target_area = max(0.5 * length_x * length_y, target_area)
+        target_area = max(target_total * length_x * length_y, target_area)
 
         if (isprint):
             print("target = ")
