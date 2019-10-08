@@ -143,7 +143,7 @@ class ConductComp(ImplicitComponent):
         idy = np.zeros(self.nELEM*16 + nBCid*2, dtype=int)
         val = np.zeros(self.nELEM*16 + nBCid*2)
         for ee in range(self.nELEM):
-            k_curr = self.k_cond * multiplier[ee] + (self.k_cond*1e-3)*(1-multiplier[ee])
+            k_curr = self.k_cond * multiplier[ee] + (self.k_cond*1e-9)*(1-multiplier[ee])
             KE_tmp = KE0 * k_curr #multiplier[ee] + (1-multiplier[ee])
 
             ELEM_id = np.kron(self.ELEM[ee],np.ones([4,1]))
@@ -191,7 +191,7 @@ class ConductComp(ImplicitComponent):
         for ee in range(self.nELEM):
             elem_id = self.ELEM[ee]
             temp_el = temp[elem_id]
-            KE_curr = KE0 * (self.k_cond*(1.0-1e-3))
+            KE_curr = KE0 * (self.k_cond*(1.0))
             KU = KE0.dot(temp_el)
 
             # ELEM_id = self.ELEM[ee]
@@ -310,7 +310,7 @@ class ThermCoupleLoadComp(ExplicitComponent):
             T_elem = T_dof[elem_id]
             T_center = self.Nmat.dot(T_elem) # same as taking average
             alphaT = self.alpha * T_center
-            epsilon_T = (1.0+alphaT) * np.array([1., 1., 0.]).transpose()
+            epsilon_T = (alphaT) * np.array([1., 1., 0.]).transpose()
 
             # thermal stress
             sigma_T = self.Cijkl0.dot(epsilon_T)*rho_elem[ee]
@@ -358,7 +358,7 @@ class ThermCoupleLoadComp(ExplicitComponent):
             T_elem = T_dof[elem_id]
             T_center = self.Nmat.dot(T_elem) # same as taking the average
             alphaT = self.alpha * T_center
-            epsilon_T = (1.0+alphaT) * np.array([1., 1., 0.]).transpose()
+            epsilon_T = (alphaT) * np.array([1., 1., 0.]).transpose()
 
             # thermal stress
             sigma_T = self.Cijkl0.dot(epsilon_T)
