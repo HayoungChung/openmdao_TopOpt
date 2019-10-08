@@ -18,11 +18,11 @@ from groups.PerturbGroup import *
 
 # imports solvers for suboptimization
 # TODO: needs to be replaced with OpenMDAO optimizer
-from suboptim.solvers import SolversA
+from suboptim.solvers import Solvers
 
 objectives = {0: "compliance", 1: "stress",
               2: "conduction", 3: "coupled_heat"}
-saveFolder = "./save_coupleHeat1/"
+saveFolder = "./save/"
 import os
 try:
     os.mkdir(saveFolder)
@@ -214,7 +214,7 @@ def main(maxiter):
                 E=E, nu=nu, alpha=alpha,
                 w=0.0) # if w = 0.0, thermoelastic + conduction, if w = 1.0, conduction only
 
-        
+
         # One Problem per one OpenMDAO object
         prob = Problem(model)
 
@@ -268,7 +268,7 @@ def main(maxiter):
 
         print ('loop %d is finished' % i_HJ)
         area = areafraction.sum()/(nelx*nely)
-        try: 
+        try:
             u = prob['temp_comp.disp']
             compliance = np.dot(u, GF_t[:nNODE])
         except:
@@ -310,7 +310,7 @@ def main(maxiter):
             obj1 = prob['objective_comp.x1'][0]
             obj2 = prob['objective_comp.x2'][0]
             obj = prob['objective_comp.y'][0]
-            
+
             print([obj1, obj2, obj,  area])
             fid = open(saveFolder + "log.txt", "a+")
             fid.write(str(obj1) + ", " + str(obj2) + ", " +
