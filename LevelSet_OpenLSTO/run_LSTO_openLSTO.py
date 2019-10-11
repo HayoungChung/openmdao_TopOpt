@@ -61,8 +61,8 @@ fem_solver = py_FEA(lx = length_x, ly = length_y, nelx=nelx, nely=nely, element_
 ## BCs ===================================
 fem_solver.set_material(E,nu,1.0)
 
-coord = np.array([0,0])
-tol = np.array([1e-3,1e10])
+coord = np.array([[0,0]])
+tol = np.array([[1e-3,1e10]])
 fem_solver.set_boundary(coord = coord,tol = tol)
 BCid = fem_solver.get_boundary()
 
@@ -172,10 +172,10 @@ for i_HJ in range(0, max_loop):
                             shape=(num_dofs_w_lambda,num_dofs_w_lambda))
     u = scipy.sparse.linalg.spsolve(K_sparse, GF)[:num_dofs]
 
-    print(min(u))
-    print(sum(u))
-    print(np.linalg.norm(u))
-    exit(0)
+    # print(min(u))
+    # print(sum(u))
+    # print(np.linalg.norm(u))
+    # exit(0)
 
     Order_gpts = 2 # number of Gauss Points
     num_gpts = num_elems * Order_gpts**2
@@ -235,14 +235,14 @@ for i_HJ in range(0, max_loop):
         
         Bpt_Vel = displacements_ / timestep
 
-    else:
+    else: # works best
         model = LSM2D_slpGroup(lsm_solver = lsm_solver, num_bpts = num_bpts, ub = ub2, lb = lb2,
             Sf = bpts_sens_new[:,0], Sg = bpts_sens_new[:,1], constraintDistance = constraint_distance)
         
         prob = Problem(model)
         prob.setup()
         
-        if 0:
+        if 1:
             prob.driver = ScipyOptimizer()
             prob.driver.options['optimizer'] = 'SLSQP'
             prob.driver.options['disp'] = True

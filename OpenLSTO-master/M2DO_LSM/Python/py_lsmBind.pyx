@@ -324,6 +324,11 @@ cdef class py_LSM:
                     if displacement[dd] < self.boundaryptr.points[dd].negativeLimit:
                         displacement[dd] = self.boundaryptr.points[dd].negativeLimit
 
+                if displacement[dd] > self.moveLimit:
+                    displacement[dd] = self.moveLimit
+                elif displacement[dd] < -self.moveLimit:
+                    displacement[dd] = -self.moveLimit
+
         return displacement
 
     def compute_unscaledDisplacement(self, np.ndarray[double] lambdas):
@@ -335,6 +340,11 @@ cdef class py_LSM:
                 if self.isBound[dd]:
                     if displacement[dd] < self.boundaryptr.points[dd].negativeLimit:
                         displacement[dd] = self.boundaryptr.points[dd].negativeLimit
+
+                if displacement[dd] > self.moveLimit:
+                    displacement[dd] = self.moveLimit
+                elif displacement[dd] < -self.moveLimit:
+                    displacement[dd] = -self.moveLimit
 
         return displacement
 
@@ -374,7 +384,7 @@ cdef class py_LSM:
             if constraintDistance[qq] < 0:
                 if constraintDistance[qq] < movemin:
                     scaled_constraintDistance[qq] = movemin 
-            else:
+            else: # constraint is satisfied
                 if constraintDistance[qq] > movemax:
                     scaled_constraintDistance[qq] = movemax
 
