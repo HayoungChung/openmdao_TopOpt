@@ -393,7 +393,7 @@ void LevelSet::fixNodes(const std::vector<Coord>& points)
 void LevelSet::createLevelSetBoundary(const std::vector<Coord>& points)
 {
     // Loop over all nodes.
-    for (unsigned int i=0;i<mesh.nNodes;i++)
+    for (unsig  d int i=0;i<mesh.nNodes;i++)
     {
         // Point is inside the rectangle.
         if (mesh.nodes[i].coord.x > points[0].x &&

@@ -1,5 +1,5 @@
 {
     "git.ignoreLimitWarning": true,
     "python.linting.pylintEnabled": false,
-    "python.pythonPath": "/home/hac/anaconda2/bin/python"
+    "python.pythonPath": "/home/hayoung/anaconda3/envs/py2.7/bin/python"
 }
