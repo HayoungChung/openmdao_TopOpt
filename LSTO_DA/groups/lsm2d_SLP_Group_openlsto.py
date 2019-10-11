@@ -10,22 +10,23 @@ from components_new.ScalingComp import *
 
 class LSM2D_slpGroup(Group):
     def initialize(self):
-        self.options.declare('lsm_solver', types=py_LSM, )#required=True)
-        self.options.declare('num_bpts', types=(int,float), )#required=True)
-        self.options.declare('ub', types=(list,np.ndarray), )#required=True)
-        self.options.declare('lb', types=(list,np.ndarray), )#required=True)
+        self.options.declare('lsm_solver', types=py_LSM, )
+        self.options.declare('num_bpts', types=(int,float), )
+        self.options.declare('ub', types=(list,np.ndarray), )
+        self.options.declare('lb', types=(list,np.ndarray), )
 
-        self.options.declare('Sf', types=np.ndarray, )#required=True)
-        self.options.declare('Sg', types=np.ndarray, )#required=True)
-        self.options.declare('constraintDistance', types=float, )#required=True)
-
+        self.options.declare('Sf', types=np.ndarray, )
+        self.options.declare('Sg', types=np.ndarray, )
+        self.options.declare('constraintDistance', types=float, )
+        self.options.declare('movelimit', types=float, )
 
     def setup(self):
         lsm_solver = self.options['lsm_solver']
         num_bpts = self.options['num_bpts']
         upperbound = self.options['ub']
         lowerbound = self.options['lb']
-
+        movelimit = self.options['movelimit']
+        
         Sf = self.options['Sf']
         Sg = self.options['Sg']
         constraintDistance = self.options['constraintDistance']
@@ -54,7 +55,7 @@ class LSM2D_slpGroup(Group):
         self.connect('inputs_comp.Sg', 'scaling_g_comp.x')
 
         # displacements setup
-        comp = DisplacementComp(lsm_solver = lsm_solver, nBpts = num_bpts, ndvs = num_dvs)
+        comp = DisplacementComp(lsm_solver = lsm_solver, nBpts = num_bpts, ndvs = num_dvs, movelimit=movelimit)
         self.add_subsystem('displacement_comp', comp)
         
         self.connect('inputs_comp.lambdas', 'displacement_comp.lambdas')

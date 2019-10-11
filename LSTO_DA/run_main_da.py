@@ -266,9 +266,9 @@ def main(maxiter):
         Sg[Sg < - 1.5] = -1.5
         Cg = np.multiply(Sg, seglength)
 
-        Sf[Sf*0.5 > movelimit] = movelimit/0.5
-        Sf[Sf*0.5 < -movelimit] = -movelimit/0.5
-        Cf = np.multiply(Sf, seglength)
+        # Sf[Sf*0.5 > movelimit] = movelimit/0.5
+        # Sf[Sf*0.5 < -movelimit] = -movelimit/0.5
+        # Cf = np.multiply(Sf, seglength)
         ########################################################
         ############## 		suboptimize 		################
         ########################################################
@@ -306,7 +306,7 @@ def main(maxiter):
             constraint_distance = (0.4 * nelx * nely) - areafraction.sum()
 
             model = LSM2D_slpGroup(lsm_solver = lsm_solver, num_bpts = nBpts, ub = ub2, lb = lb2,
-                Sf = bpts_sens[:,0], Sg = bpts_sens[:,1], constraintDistance = constraint_distance)
+                Sf = bpts_sens[:,0], Sg = bpts_sens[:,1], constraintDistance = constraint_distance, movelimit=movelimit)
 
             subprob = Problem(model)
             subprob.setup()
@@ -497,6 +497,6 @@ def main(maxiter):
             return()
 
 if __name__ == "__main__":
-    main(61)
+    main(300)
 else:
     main(1)  # testrun

@@ -4,15 +4,16 @@ from py_lsmBind import py_LSM
         
 class DisplacementComp(ExplicitComponent):
     def initialize(self):
-        self.options.declare('nBpts', types=(int, float), )#required=True)
-        self.options.declare('ndvs', types=(int, float), )#required=True)
-        self.options.declare('lsm_solver', types=py_LSM, )#required=True) # considers geometry
-        # self.options.declare('FreeNodes', types=np.ndarray, )#required=False)
+        self.options.declare('nBpts', types=(int, float), )
+        self.options.declare('ndvs', types=(int, float), )
+        self.options.declare('lsm_solver', types=py_LSM, )
+        self.options.declare('movelimit', types=float)
 
     def setup(self):
         self.nBpts = self.options['nBpts'] 
         self.ndvs = self.options['ndvs'] 
         self.lsm_solver = self.options['lsm_solver']
+        self.movelimit = self.options['movelimit']
 
         self.isActive = self.lsm_solver.get_isActive() # FreeNodes
         self.isBound = self.lsm_solver.get_isBound()  # DomainBoundaries
@@ -52,6 +53,9 @@ class DisplacementComp(ExplicitComponent):
                     if displacements[dd] < negLim[dd]:
                         displacements[dd] = negLim[dd]
 
+        displacements[displacements>self.movelimit] = self.movelimit # capping. 2019oct wip
+        displacements[displacements<-self.movelimit] = -self.movelimit
+        
         outputs['displacements'] = displacements 
 
     # def compute_partials(self, in puts, partials):
