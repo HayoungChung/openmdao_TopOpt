@@ -38,7 +38,7 @@ except:
 def main(maxiter):
 
     # select which problem to solve
-    obj_flag = 3
+    obj_flag = 2
     print(locals())
     print("solving %s problem" % objectives[obj_flag])
 
@@ -95,7 +95,7 @@ def main(maxiter):
 
         BCid_e = fea_solver.get_boundary()
         nDOF_e_wLag = nDOF_e + len(BCid_e)  # elasticity DOF
-        
+
         coord = np.array([length_x*0.5, 0.0])  # length_y])
         tol = np.array([4.1, 1e-3])
         GF_e_ = fea_solver.set_force(coord=coord, tol=tol, direction=1, f=-f)
@@ -109,7 +109,7 @@ def main(maxiter):
         nDOF_e_wLag = nDOF_e + len(BCid_e)  # elasticity DOF
 
         coord = np.array([length_x,length_y/2])
-        tol = np.array([1,1]) 
+        tol = np.array([1,1])
         GF_e_ = fea_solver.set_force(coord = coord,tol = tol, direction = 1, f = -1.0)
         GF_e = np.zeros(nDOF_e_wLag)
         GF_e[:nDOF_e] = GF_e_
@@ -119,19 +119,19 @@ def main(maxiter):
     # xfix = np.array([num_nodes_x*(nely/2-1), num_nodes_x*nely/2,
                     # num_nodes_x*(nely/2-1) + nelx, num_nodes_x*nely/2 + nelx])
     xfix = np.append(xlo, xhi)
-    yfix = np.array(range(num_nodes_x*nely, nNODE))
+    # yfix = np.array(range(num_nodes_x*nely, nNODE))
     # yloid = np.array(range(70, 91))
-    fixID_d = np.append(xfix, yfix)
-    fixID_d = np.unique(fixID_d)
-    fixID = np.append(fixID_d, arange(70, 91))
-    BCid_t = np.array(fixID, dtype=int)
+    # fixID_d = np.append(xfix, yfix)
+    #fixID_d = np.unique(fixID_d)
+    #fixID = np.append(fixID_d, arange(70, 91))
+    BCid_t = np.array(np.append(xfix, arange(70,91)), dtype=int)
     nDOF_t_wLag = nDOF_t + len(BCid_t)  # temperature DOF (zero temp)
 
     GF_t = np.zeros(nDOF_t_wLag)  # FORCE_HEAT (NB: Q matrix)
-    # for ee in range(70, 91):  # between element 70 to 91
-    #     GF_t[elem[ee]] += 10.  # heat generation
-    # GF_t /= np.sum(GF_t)
-    GF_t[nDOF_t:nDOF_t+len(fixID_d)+1] = 100.
+    for ee in range(nELEM):  # between element 70 to 91
+         GF_t[elem[ee]] += 10.  # heat generation
+    GF_t /= np.sum(GF_t)
+    #GF_t[nDOF_t:nDOF_t+len(fixID_d)+1] = 100.
         # GF_t[:] = 0.0
 
 
@@ -266,13 +266,10 @@ def main(maxiter):
         Sg[Sg < - 1.5] = -1.5
         Cg = np.multiply(Sg, seglength)
 
-        # Sf[Sf*0.5 > movelimit] = movelimit/0.5
-        # Sf[Sf*0.5 < -movelimit] = -movelimit/0.5
-        # Cf = np.multiply(Sf, seglength)
         ########################################################
         ############## 		suboptimize 		################
         ########################################################
-        if 0: 
+        if 0:
             suboptim = Solvers(bpts_xy=bpts_xy, Sf=Sf, Sg=Sg, Cf=Cf, Cg=Cg, length_x=length_x,
                             length_y=length_y, areafraction=areafraction, movelimit=movelimit)
             # suboptimization
@@ -282,21 +279,10 @@ def main(maxiter):
                 Bpt_Vel = suboptim.bisection(isprint=False)
             timestep = 1.0
 
-            # save - wip =====================================
-            plt.figure(1)
-            plt.clf()
-            plt.subplot(2,1,1)
-            plt.scatter(bpts_xy[:,0], bpts_xy[:,1], 10, Bpt_Vel) 
-            plt.subplot(2,1,2)
-            plt.plot(Bpt_Vel)
-            plt.savefig("/home/hayoung/Desktop/vel.png")
-            # exit()
-            # save - wip =====================================
-
-        elif 1: # branch: perturb-suboptim
+        elif 1: # works okay now.
             bpts_sens = np.zeros((nBpts,2))
             # issue: scaling problem
-            # 
+            #
             bpts_sens[:,0] = Sf
             bpts_sens[:,1] = Sg
 
@@ -328,33 +314,12 @@ def main(maxiter):
             # print(timestep)
             del subprob
 
-            # save - wip =====================================
-            plt.figure(1)
-            plt.clf()
-            plt.subplot(2,1,1)
-            plt.scatter(bpts_xy[:,0], bpts_xy[:,1], 10, Bpt_Vel) 
-            plt.subplot(2,1,2)
-            plt.plot(Bpt_Vel)
-            plt.savefig("/home/hayoung/Desktop/vel.png")
-            # exit()
-            # save - wip =====================================
-
         else: # branch: perturb-suboptim
             bpts_sens = np.zeros((nBpts,2))
             # issue: scaling problem
-            # 
+            #
             bpts_sens[:,0] = Sf
             bpts_sens[:,1] = Sg
-
-            # save - wip =====================================
-            plt.figure(1)
-            plt.clf()
-            plt.subplot(2,1,1)
-            plt.scatter(bpts_xy[:,0], bpts_xy[:,1], 10, bpts_sens[:,0])
-            plt.subplot(2,1,2)
-            plt.plot(bpts_sens[:,0])
-            plt.savefig("/home/hayoung/Desktop/main_sens.png")
-            # save - wip =====================================
 
             lsm_solver.set_BptsSens(bpts_sens)
             scales = lsm_solver.get_scale_factors()
@@ -384,20 +349,8 @@ def main(maxiter):
             displacements_[displacements_ > movelimit] = movelimit
             displacements_[displacements_ < -movelimit] = -movelimit
             timestep =  1.0 #abs(lambdas[0]*scales[0])
-
-            # save - wip =====================================
-            np.savetxt("/home/hayoung/Desktop/disp.txt", bpts_sens)
-            plt.figure(1)
-            plt.clf()
-            plt.subplot(2,1,1)
-            plt.scatter(bpts_xy[:,0], bpts_xy[:,1], 10, displacements_) 
-            plt.subplot(2,1,2)
-            plt.plot(displacements_)
-            plt.savefig("/home/hayoung/Desktop/disp.png")
-            # exit()
-            # save - wip =====================================
             Bpt_Vel = displacements_ / timestep
-            # scaling 
+            # scaling
             # Bpt_Vel = Bpt_Vel#/np.max(np.abs(Bpt_Vel))
 
         lsm_solver.advect(Bpt_Vel, timestep)
@@ -410,7 +363,8 @@ def main(maxiter):
             compliance = np.dot(u, GF_t[:nNODE])
         except:
             u = prob['disp_comp.disp']
-            compliance = np.dot(u, GF_e[:nDOF_e])
+            # compliance = np.dot(u, GF_e[:nDOF_e])
+            pass
 
         if 1:  # quickplot
             plt.figure(1)
@@ -418,7 +372,7 @@ def main(maxiter):
             plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 10)
             plt.axis("equal")
             plt.savefig(saveFolder + "figs/bpts_%d.png" % i_HJ)
-            if obj_flag == 3:
+            if obj_flag == 3 or obj_flag == 2:
                 plt.figure(2)
                 plt.clf()
                 [xx, yy] = np.meshgrid(range(0,161),range(0,81))

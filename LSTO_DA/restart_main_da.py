@@ -22,15 +22,15 @@ from groups.PerturbGroup import *
 # TODO: needs to be replaced with OpenMDAO optimizer
 from suboptim.solvers import Solvers
 
-loadFolder0 = "./save_coupleHeat1/"  # NB: must be3 equal to run_main_da.py
+loadFolder0 = "./save/"  # NB: must be3 equal to run_main_da.py
 
 def main(*args):
 
     objectives = {0: "compliance", 1: "stress",
                 2: "conduction", 3: "coupled_heat"}
 
-    loadFolder = loadFolder0 + "restart_37/"
-    restart_iter = 37
+    loadFolder = loadFolder0 + ""
+    restart_iter = 47
 
     for x in args:
 
@@ -55,7 +55,7 @@ def main(*args):
         tot_iter = restart_iter + 1
 
     # select which problem to solve
-    obj_flag = 3
+    obj_flag = 2
     print(locals())
     print("solving %s problem" % objectives[obj_flag])
 
@@ -130,7 +130,7 @@ def main(*args):
     ########################################################
     ################# 		LSM 		####################
     ########################################################
-    movelimit = 0.1
+    movelimit = 0.5
 
     # Declare Level-set object
     lsm_solver = py_LSM(nelx=nelx, nely=nely, moveLimit=movelimit)
@@ -229,15 +229,90 @@ def main(*args):
         ########################################################
         ############## 		suboptimize 		################
         ########################################################
-        suboptim = Solvers(bpts_xy=bpts_xy, Sf=Sf, Sg=Sg, Cf=Cf, Cg=Cg, length_x=length_x,
-                           length_y=length_y, areafraction=areafraction, movelimit=movelimit)
-        # suboptimization
-        if 1:  # simplex
-            Bpt_Vel = suboptim.simplex(isprint=False)
-        else:  # bisection..
-            Bpt_Vel = suboptim.bisection(isprint=False)
+        if 0:
+            suboptim = Solvers(bpts_xy=bpts_xy, Sf=Sf, Sg=Sg, Cf=Cf, Cg=Cg, length_x=length_x,
+                            length_y=length_y, areafraction=areafraction, movelimit=movelimit)
+            # suboptimization
+            if 1:  # simplex
+                Bpt_Vel = suboptim.simplex(isprint=False)
+            else:  # bisection..
+                Bpt_Vel = suboptim.bisection(isprint=False)
+            timestep = 1.0
 
-        timestep = 1.0
+        elif 1: # works okay now.
+            bpts_sens = np.zeros((nBpts,2))
+            # issue: scaling problem
+            #
+            bpts_sens[:,0] = Sf
+            bpts_sens[:,1] = Sg
+
+            lsm_solver.set_BptsSens(bpts_sens)
+            scales = lsm_solver.get_scale_factors()
+            (lb2,ub2) = lsm_solver.get_Lambda_Limits()
+            constraint_distance = (0.4 * nelx * nely) - areafraction.sum()
+
+            model = LSM2D_slpGroup(lsm_solver = lsm_solver, num_bpts = nBpts, ub = ub2, lb = lb2,
+                Sf = bpts_sens[:,0], Sg = bpts_sens[:,1], constraintDistance = constraint_distance, movelimit=movelimit)
+
+            subprob = Problem(model)
+            subprob.setup()
+
+            subprob.driver = ScipyOptimizeDriver()
+            subprob.driver.options['optimizer'] = 'SLSQP'
+            subprob.driver.options['disp'] = True
+            subprob.driver.options['tol'] = 1e-10
+
+            subprob.run_driver()
+            lambdas = subprob['inputs_comp.lambdas']
+            displacements_ = subprob['displacement_comp.displacements']
+
+            displacements_[displacements_ > movelimit] = movelimit
+            displacements_[displacements_ < -movelimit] = -movelimit
+            timestep =  1.0 #abs(lambdas[0]*scales[0])
+
+            Bpt_Vel = displacements_ / timestep
+            # print(timestep)
+            del subprob
+
+        else: # branch: perturb-suboptim
+            bpts_sens = np.zeros((nBpts,2))
+            # issue: scaling problem
+            #
+            bpts_sens[:,0] = Sf
+            bpts_sens[:,1] = Sg
+
+            lsm_solver.set_BptsSens(bpts_sens)
+            scales = lsm_solver.get_scale_factors()
+            (lb2,ub2) = lsm_solver.get_Lambda_Limits()
+
+            constraint_distance = (0.4 * nelx * nely) - areafraction.sum()
+            constraintDistance = np.array([constraint_distance])
+            scaled_constraintDist = lsm_solver.compute_scaledConstraintDistance(constraintDistance)
+
+            def objF_nocallback(x):
+                displacement = lsm_solver.compute_displacement(x)
+                displacement_np = np.asarray(displacement)
+                return lsm_solver.compute_delF(displacement_np)
+
+            def conF_nocallback(x):
+                displacement = lsm_solver.compute_displacement(x)
+                displacement_np = np.asarray(displacement)
+                return lsm_solver.compute_delG(displacement_np, scaled_constraintDist, 1)
+
+            cons = ({'type': 'eq', 'fun': lambda x: conF_nocallback(x)})
+            res = sp_optim.minimize(objF_nocallback, np.zeros(2), method='SLSQP', options={'disp': True},
+                                    bounds=((lb2[0], ub2[0]), (lb2[1], ub2[1])),
+                                    constraints=cons)
+
+            lambdas = res.x
+            displacements_ = lsm_solver.compute_unscaledDisplacement(lambdas)
+            displacements_[displacements_ > movelimit] = movelimit
+            displacements_[displacements_ < -movelimit] = -movelimit
+            timestep =  1.0 #abs(lambdas[0]*scales[0])
+            Bpt_Vel = displacements_ / timestep
+            # scaling
+            # Bpt_Vel = Bpt_Vel#/np.max(np.abs(Bpt_Vel))
+
         lsm_solver.advect(Bpt_Vel, timestep)
         lsm_solver.reinitialise()
 
@@ -255,10 +330,27 @@ def main(*args):
             compliance = np.dot(u, GF_t[:nNODE])
         except:
             u = prob['disp_comp.disp']
-            compliance = np.dot(u, GF_e[:nDOF_e])
+            # compliance = np.dot(u, GF_e[:nDOF_e])
+            pass
 
-        print([compliance, area])
+            if 1:  # quickplot
+                plt.figure(1)
+                plt.clf()
+                plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 10)
+                plt.axis("equal")
+                plt.savefig(loadFolder + 'restart_' + str(restart_iter) + "/" + "figs/bpts_%d.png" % i_HJ)
+                if obj_flag == 3 or obj_flag == 2:
+                    plt.figure(2)
+                    plt.clf()
+                    [xx, yy] = np.meshgrid(range(0,161),range(0,81))
+                    plt.contourf(xx, yy,np.reshape(u, [81,161]))
+                    plt.colorbar()
+                    plt.axis("equal")
+                    plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 5)
+                    plt.savefig(loadFolder + 'restart_' + str(restart_iter) + "/" + "figs/temp_%d.png" % i_HJ)
+
         if (objectives[obj_flag] == "compliance" and not inspctFlag):
+            
             compliance = prob['compliance_comp.compliance']
             print (compliance, area)
 

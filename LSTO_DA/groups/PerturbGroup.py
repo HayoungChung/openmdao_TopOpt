@@ -313,12 +313,12 @@ class ConductionGroup(Group):
         # SIMP_3. area-to-state
         comp_ = ConductComp(k_cond = K_cond, BCid = BCid, nelx=nelx, nely=nely, length_x=length_x, length_y=length_y, ELEM = elem)
         self.add_subsystem('states_comp', comp_)
-        self.connect('states_comp.states', 'disp_comp.states')
+        self.connect('states_comp.states', 'temp_comp.states')
 
         # SIMP_4. extract out lagrange multipliers
         comp_ = COND_DispComp(num_nodes_x = nelx+1, num_nodes_y = nely+1, nBCid=len(BCid))
-        self.add_subsystem('disp_comp', comp_)
-        self.connect('disp_comp.disp', 'compliance_comp.disp')
+        self.add_subsystem('temp_comp', comp_)
+        self.connect('temp_comp.disp', 'compliance_comp.disp')
 
         comp_ = COND_DispComp(num_nodes_x = nelx+1, num_nodes_y = nely+1, nBCid=len(BCid))
         self.add_subsystem('GF_comp', comp_)

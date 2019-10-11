@@ -8,7 +8,7 @@ except:
 from plot import plot_contour, plot_save, plot_mesh
 
 
-filename = './save_coupleHeat1/const.pkl'
+filename = './save/const.pkl'
 with open(filename, 'rb') as f:
     raw = pickle.load(f)
 
@@ -27,7 +27,7 @@ num_nodes_y = mesh.shape[1]
 print(length_x, length_y, num_nodes_x, num_nodes_y)
 
 counter = 0
-filename = './save_coupleHeat1/phi%03i.pkl' % counter
+filename = './save/phi%03i.pkl' % counter
 
 
 while os.path.isfile(filename):
@@ -61,9 +61,9 @@ while os.path.isfile(filename):
         plot_contour(mesh, multipliers, plot_fill=True)
 
     # plot_save(save='/home/hac210/Dropbox/_WRITINGS_/Scitech18_mdao/Figures/LSTO_TMP/save%03i.png'%counter)
-    plot_save(save='../save_heatCouple/save%03i.png'%counter)
+    plot_save(save='./save/save%03i.png'%counter)
 
     counter += 1
-    filename = '../save_heatCouple/phi%03i.pkl' % counter
+    filename = './save/phi%03i.pkl' % counter
 
 # import movie
