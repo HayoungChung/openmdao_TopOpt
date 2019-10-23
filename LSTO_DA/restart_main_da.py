@@ -2,7 +2,7 @@
 # use Pickle to import level set function
 # Before use this script, TODO: always check if folder-name / force / Bcs are consistent with the main_da.
 
-from openmdao.api import Group, Problem, view_model, pyOptSparseDriver
+from openmdao.api import Group, Problem, view_model, pyOptSparseDriver, ScipyOptimizeDriver
 from openmdao.api import IndepVarComp, ExplicitComponent, ImplicitComponent
 from post.plot import get_mesh, plot_solution, plot_contour
 from matplotlib import pyplot as plt
@@ -17,6 +17,7 @@ from py_lsmBind import py_LSM
 
 # imports perturbation method (aka discrete adjoint)
 from groups.PerturbGroup import *
+from groups.lsm2d_SLP_Group_openlsto import LSM2D_slpGroup
 
 # imports solvers for suboptimization
 # TODO: needs to be replaced with OpenMDAO optimizer
@@ -24,18 +25,13 @@ from suboptim.solvers import Solvers
 
 loadFolder0 = "./save/"  # NB: must be3 equal to run_main_da.py
 
-def main(*args):
+def main(tot_iter):
 
     objectives = {0: "compliance", 1: "stress",
                 2: "conduction", 3: "coupled_heat"}
 
     loadFolder = loadFolder0 + ""
     restart_iter = 47
-
-    for x in args:
-
-
-
 
     import os
     try:
@@ -333,21 +329,21 @@ def main(*args):
             # compliance = np.dot(u, GF_e[:nDOF_e])
             pass
 
-            if 1:  # quickplot
-                plt.figure(1)
+        if 1:  # quickplot
+            plt.figure(1)
+            plt.clf()
+            plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 10)
+            plt.axis("equal")
+            plt.savefig(loadFolder + 'restart_' + str(restart_iter) + "/" + "figs/bpts_%d.png" % i_HJ)
+            if obj_flag == 3 or obj_flag == 2:
+                plt.figure(2)
                 plt.clf()
-                plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 10)
+                [xx, yy] = np.meshgrid(range(0,161),range(0,81))
+                plt.contourf(xx, yy,np.reshape(u, [81,161]))
+                plt.colorbar()
                 plt.axis("equal")
-                plt.savefig(loadFolder + 'restart_' + str(restart_iter) + "/" + "figs/bpts_%d.png" % i_HJ)
-                if obj_flag == 3 or obj_flag == 2:
-                    plt.figure(2)
-                    plt.clf()
-                    [xx, yy] = np.meshgrid(range(0,161),range(0,81))
-                    plt.contourf(xx, yy,np.reshape(u, [81,161]))
-                    plt.colorbar()
-                    plt.axis("equal")
-                    plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 5)
-                    plt.savefig(loadFolder + 'restart_' + str(restart_iter) + "/" + "figs/temp_%d.png" % i_HJ)
+                plt.scatter(bpts_xy[:, 0], bpts_xy[:, 1], 5)
+                plt.savefig(loadFolder + 'restart_' + str(restart_iter) + "/" + "figs/temp_%d.png" % i_HJ)
 
         if (objectives[obj_flag] == "compliance" and not inspctFlag):
             
@@ -394,7 +390,7 @@ def main(*args):
             print("memory explodes at iteration %3i " % i_HJ)
             exit()
 
-# if __name__ == '__main__':
-#     main(500)
-# else:
-#     main(-1)  # inspection mode
+if __name__ == '__main__':
+    main(300)
+else:
+    main(-1)  # inspection mode

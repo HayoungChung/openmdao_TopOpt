@@ -38,7 +38,7 @@ except:
 def main(maxiter):
 
     # select which problem to solve
-    obj_flag = 2
+    obj_flag = 3
     print(locals())
     print("solving %s problem" % objectives[obj_flag])
 
@@ -124,12 +124,14 @@ def main(maxiter):
     # fixID_d = np.append(xfix, yfix)
     #fixID_d = np.unique(fixID_d)
     #fixID = np.append(fixID_d, arange(70, 91))
-    BCid_t = np.array(np.append(xfix, arange(70,91)), dtype=int)
+    # BCid_t = np.array(np.append(xfix, arange(70,91)), dtype=int)
+    BCid_t = np.array(arange(70,91), dtype=int)
     nDOF_t_wLag = nDOF_t + len(BCid_t)  # temperature DOF (zero temp)
 
     GF_t = np.zeros(nDOF_t_wLag)  # FORCE_HEAT (NB: Q matrix)
     for ee in range(nELEM):  # between element 70 to 91
          GF_t[elem[ee]] += 10.  # heat generation
+    GF_t[BCid_t] = 0.0
     GF_t /= np.sum(GF_t)
     #GF_t[nDOF_t:nDOF_t+len(fixID_d)+1] = 100.
         # GF_t[:] = 0.0
@@ -227,7 +229,7 @@ def main(maxiter):
                 BCid_e=BCid_e,
                 BCid_t=BCid_t,
                 E=E, nu=nu, alpha=alpha,
-                w=0.0) # if w = 0.0, thermoelastic + conduction, if w = 1.0, conduction only
+                w=0.9) # if w = 0.0, thermoelastic + conduction, if w = 1.0, conduction only
 
 
         # One Problem per one OpenMDAO object
@@ -243,33 +245,44 @@ def main(maxiter):
         # Total derivative using MAUD =====================
         total = prob.compute_totals()
         if (objectives[obj_flag] == "compliance"):
-            Cf = total['compliance_comp.compliance', 'inputs_comp.Vn'][0]
-            Cg = total['weight_comp.weight', 'inputs_comp.Vn'][0]
+            ff = total['compliance_comp.compliance', 'inputs_comp.Vn'][0]
+            gg = total['weight_comp.weight', 'inputs_comp.Vn'][0]
         elif (objectives[obj_flag] == "stress"):
-            Cf = total['pnorm_comp.pnorm', 'inputs_comp.Vn'][0]
-            Cg = total['weight_comp.weight', 'inputs_comp.Vn'][0]
+            ff = total['pnorm_comp.pnorm', 'inputs_comp.Vn'][0]
+            gg = total['weight_comp.weight', 'inputs_comp.Vn'][0]
         elif (objectives[obj_flag] == "conduction"):
-            Cf = total['compliance_comp.compliance', 'inputs_comp.Vn'][0]
-            Cg = total['weight_comp.weight', 'inputs_comp.Vn'][0]
+            ff = total['compliance_comp.compliance', 'inputs_comp.Vn'][0]
+            gg = total['weight_comp.weight', 'inputs_comp.Vn'][0]
         elif (objectives[obj_flag] == "coupled_heat"):
-            Cf = total['objective_comp.y', 'inputs_comp.Vn'][0]
-            Cg = total['weight_comp.weight', 'inputs_comp.Vn'][0]
+            ff = total['objective_comp.y', 'inputs_comp.Vn'][0]
+            gg = total['weight_comp.weight', 'inputs_comp.Vn'][0]
 
         nBpts = int(bpts_xy.shape[0])
-        Cf = -Cf[:nBpts]
-        Cg = -Cg[:nBpts]
+        # # WIP checking sensitivity 10/23
+        Sf = -ff[:nBpts] # equal to M2DO-perturbation
+        Cf = np.multiply(Sf, seglength)
 
-        Sf = np.divide(Cf, seglength)
-        Sg = np.divide(Cg, seglength)
+        Sg = -gg[:nBpts]
+        Cg = np.multiply(Sf, seglength)
+        # ## WIP
+
+        # previous ver.
+        # Cf = -ff[:nBpts]
+        # Cg = -gg[:nBpts]
+
+        # Sf = np.divide(Cf, seglength)
+        # Sg = np.divide(Cg, seglength)
 
         # bracketing Sf and Sg
         Sg[Sg < - 1.5] = -1.5
+        Sg[Sg > 0.5] = 0.5
+        # Sg[:] = -1.0
         Cg = np.multiply(Sg, seglength)
 
         ########################################################
         ############## 		suboptimize 		################
         ########################################################
-        if 0:
+        if 1:
             suboptim = Solvers(bpts_xy=bpts_xy, Sf=Sf, Sg=Sg, Cf=Cf, Cg=Cg, length_x=length_x,
                             length_y=length_y, areafraction=areafraction, movelimit=movelimit)
             # suboptimization
@@ -278,8 +291,9 @@ def main(maxiter):
             else:  # bisection..
                 Bpt_Vel = suboptim.bisection(isprint=False)
             timestep = 1.0
+            np.savetxt('a.txt',Bpt_Vel)
 
-        elif 1: # works okay now.
+        elif 1: # works when Sf <- Sf / length is used (which means Cf <- actual Sf)
             bpts_sens = np.zeros((nBpts,2))
             # issue: scaling problem
             #
@@ -306,11 +320,12 @@ def main(maxiter):
             lambdas = subprob['inputs_comp.lambdas']
             displacements_ = subprob['displacement_comp.displacements']
 
-            displacements_[displacements_ > movelimit] = movelimit
-            displacements_[displacements_ < -movelimit] = -movelimit
-            timestep =  1.0 #abs(lambdas[0]*scales[0])
+            # displacements_[displacements_ > movelimit] = movelimit
+            # displacements_[displacements_ < -movelimit] = -movelimit
+            timestep =  abs(lambdas[0]*scales[0])
 
             Bpt_Vel = displacements_ / timestep
+            np.savetxt('a.txt',Bpt_Vel)
             # print(timestep)
             del subprob
 

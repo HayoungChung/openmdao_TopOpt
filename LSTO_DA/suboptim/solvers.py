@@ -34,7 +34,7 @@ class Solvers(object):
         nBpts = self.nBpts
 
         percent_area = 0.5
-        target_total = 0.5
+        target_total = 0.4
         target_area0 = sum(areafraction)
         target_area = target_area0
 
